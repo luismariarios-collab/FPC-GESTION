@@ -247,6 +247,8 @@ select option{background:var(--surface)}
   .modal-overlay{align-items:flex-end;padding:0}
   .theme-label{display:none}
   .buscador-global{max-width:none}
+  .topbar-left .btn-sm{padding:7px 10px;font-size:14px}
+  .topbar-left .btn-sm span{display:none}
 }
 </style>
 </head>
@@ -280,7 +282,7 @@ select option{background:var(--surface)}
 <div class="app" id="app">
   <div class="sidebar" id="sidebar">
     <div class="logo-area">
-      <img class="logo-img" id="sidebarLogo" alt="FPC" onclick="cerrarMenu()">
+      <img class="logo-img" id="sidebarLogo" alt="FPC" onclick="goSection('dashboard')" style="cursor:pointer" title="Ir al inicio">
       <div class="logo-texts">
         <div class="logo-title" id="sidebarNombre">FPC</div>
         <div class="logo-sub">Informatica</div>
@@ -304,6 +306,7 @@ select option{background:var(--surface)}
     <div class="topbar">
       <div class="topbar-left">
         <button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+        <button class="btn btn-ghost btn-sm" onclick="goSection('dashboard')" title="Volver al inicio" style="flex-shrink:0">🏠<span> Inicio</span></button>
         <div class="topbar-title" id="topbarTitle">Dashboard</div>
       </div>
       <div class="buscador-global" id="buscadorWrap">
