@@ -224,7 +224,7 @@ select option{background:var(--surface)}
   .main{margin-left:230px}
   .hamburger{display:none!important}
   .sidebar-overlay{display:none!important}
-  .stats-grid{grid-template-columns:repeat(4,1fr)}
+  .stats-grid{grid-template-columns:repeat(5,1fr)}
   .cierre-grid{grid-template-columns:repeat(4,1fr)}
   .content{padding:32px 36px}
   .topbar{padding:18px 36px}
@@ -293,6 +293,7 @@ select option{background:var(--surface)}
       <div class="nav-item" onclick="goSection('clientes')"><span class="nav-icon">&#9786;</span> Clientes</div>
       <div class="nav-item" onclick="goSection('ordenes')"><span class="nav-icon">&#9881;</span> Ordenes</div>
       <div class="nav-item" onclick="goSection('ganancias')"><span class="nav-icon">$</span> Ganancias</div>
+      <div class="nav-item" onclick="goSection('cuentacorriente')"><span class="nav-icon">&#128179;</span> Cta. Corriente</div>
       <div class="nav-item" onclick="goSection('recordatorios')"><span class="nav-icon">&#9997;</span> Recordatorios</div>
       <div class="nav-item" onclick="goSection('config')"><span class="nav-icon">&#9965;</span> Configuracion</div>
     </nav>
@@ -336,6 +337,7 @@ select option{background:var(--surface)}
           <div class="stat-card"><div class="stat-label">Ganancia del mes</div><div class="stat-value green" id="d-mes">$0</div><div class="stat-sub" id="d-mes-label"></div></div>
           <div class="stat-card"><div class="stat-label">Total clientes</div><div class="stat-value blue" id="d-clientes">0</div><div class="stat-sub">registrados</div></div>
           <div class="stat-card"><div class="stat-label">Sin movimiento</div><div class="stat-value red" id="d-alertas">0</div><div class="stat-sub" id="d-alertas-sub"></div></div>
+          <div class="stat-card" style="cursor:pointer" onclick="goSection('cuentacorriente')"><div class="stat-label">Adeudado (cta. cte)</div><div class="stat-value red" id="d-deuda-total">$0</div><div class="stat-sub">click para ver detalle</div></div>
         </div>
 
         <!-- RECORDATORIOS DASH -->
@@ -426,6 +428,29 @@ select option{background:var(--surface)}
         </div>
       </div>
 
+      <!-- CUENTA CORRIENTE -->
+      <div class="section" id="section-cuentacorriente">
+        <div class="filtros">
+          <select id="cc-cliente-filtro" onchange="renderCuentaCorriente()" style="flex:1">
+            <option value="">Todos los clientes</option>
+          </select>
+          <button class="btn btn-primary" onclick="abrirModalCC()">+ Nuevo movimiento</button>
+        </div>
+        <div class="ganancia-resumen">
+          <div class="g-card"><div class="g-card-label">Total adeudado</div><div class="g-card-val" id="cc-total-deuda" style="color:var(--red)">$0</div></div>
+          <div class="g-card"><div class="g-card-label">Saldo a favor</div><div class="g-card-val" id="cc-total-favor" style="color:var(--green)">$0</div></div>
+          <div class="g-card"><div class="g-card-label">Clientes con saldo</div><div class="g-card-val" id="cc-clientes-saldo" style="color:var(--accent)">0</div></div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span class="card-title">Saldo por cliente</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Debe</th><th>A favor</th><th>Saldo</th><th>Acciones</th></tr></thead><tbody id="cc-saldos-body"></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Movimientos</span><span id="cant-cc" style="font-size:12px;color:var(--text2)"></span></div>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Concepto</th><th>Monto</th><th></th></tr></thead><tbody id="cc-movimientos-body"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- RECORDATORIOS -->
       <div class="section" id="section-recordatorios">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -493,12 +518,20 @@ select option{background:var(--surface)}
 
 <div class="modal-overlay" id="modal-orden"><div class="modal" style="width:580px"><div class="modal-header"><span class="modal-title" id="modal-orden-title">Nueva orden</span><button class="modal-close" onclick="cerrarModal('modal-orden')">&#215;</button></div><div class="modal-body"><div class="form-row"><div class="form-group"><label>Cliente *</label><select id="o-cliente"><option value="">-- Seleccionar --</option></select></div><div class="form-group"><label>Fecha ingreso</label><input type="date" id="o-fecha"></div></div><div class="form-row"><div class="form-group"><label>Equipo *</label><input type="text" id="o-equipo" placeholder="PC, notebook, celular..."></div><div class="form-group"><label>Marca / Modelo</label><input type="text" id="o-modelo"></div></div><div class="form-row"><div class="form-group"><label>N.Serie / IMEI</label><input type="text" id="o-serie"></div><div class="form-group"><label>Accesorios</label><input type="text" id="o-accesorios"></div></div><div class="form-group"><label>Problema / Falla *</label><textarea id="o-problema" placeholder="Describe el problema..."></textarea></div><div class="form-group"><label>Diagnostico tecnico</label><textarea id="o-diagnostico"></textarea></div><div class="form-row"><div class="form-group"><label>Presupuesto ($)</label><input type="number" id="o-presupuesto"></div><div class="form-group"><label>Estado inicial</label><select id="o-estado"><option value="Ingresado">Ingresado</option><option value="Diagnostico">En diagnostico</option><option value="Presupuestado">Presupuestado</option><option value="Aprobado">Aprobado</option><option value="Reparacion">En reparacion</option><option value="Listo">Listo</option></select></div></div><div class="form-group"><label>Observaciones</label><textarea id="o-obs"></textarea></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-orden')">Cancelar</button><button class="btn btn-primary" onclick="guardarOrden()">Guardar</button></div></div></div>
 
-<div class="modal-overlay" id="modal-estado"><div class="modal" style="width:460px"><div class="modal-header"><span class="modal-title">Actualizar orden</span><button class="modal-close" onclick="cerrarModal('modal-estado')">&#215;</button></div><div class="modal-body"><div id="estado-orden-info" style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px"></div><div class="form-group"><label>Estado</label><select id="e-estado"><option value="Ingresado">Ingresado</option><option value="Diagnostico">En diagnostico</option><option value="Presupuestado">Presupuestado</option><option value="Aprobado">Aprobado</option><option value="Reparacion">En reparacion</option><option value="Listo">Listo</option><option value="Entregado">Entregado</option><option value="Cancelado">Cancelado</option></select></div><div class="form-group"><label>Diagnostico / Notas</label><textarea id="e-diagnostico"></textarea></div><div class="form-group"><label>Presupuesto ($)</label><input type="number" id="e-presupuesto"></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-estado')">Cancelar</button><button class="btn btn-primary" onclick="guardarEstado()">Actualizar</button></div></div></div>
+<div class="modal-overlay" id="modal-estado"><div class="modal" style="width:460px"><div class="modal-header"><span class="modal-title">Actualizar orden</span><button class="modal-close" onclick="cerrarModal('modal-estado')">&#215;</button></div><div class="modal-body"><div id="estado-orden-info" style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px"></div><div class="form-group"><label>Estado</label><select id="e-estado"><option value="Ingresado">Ingresado</option><option value="Diagnostico">En diagnostico</option><option value="Presupuestado">Presupuestado</option><option value="Aprobado">Aprobado</option><option value="Reparacion">En reparacion</option><option value="Listo">Listo</option><option value="Entregado">Entregado</option><option value="Cancelado">Cancelado</option></select></div><div class="form-group"><label>Diagnostico / Notas</label><textarea id="e-diagnostico"></textarea></div><div class="form-group"><label>Presupuesto ($)</label><input type="number" id="e-presupuesto"></div><div class="form-group" id="e-pago-wrap" style="display:none"><label>Al entregar, el cliente</label><select id="e-pago-tipo"><option value="pago">Paga el total (va a Ganancias)</option><option value="deuda">Queda a deber (va a Cta. Corriente)</option><option value="ninguno">No cobrar nada (sin registro)</option></select></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-estado')">Cancelar</button><button class="btn btn-primary" onclick="guardarEstado()">Actualizar</button></div></div></div>
 
 <div class="modal-overlay" id="modal-ganancia"><div class="modal"><div class="modal-header"><span class="modal-title" id="modal-ganancia-title">Registrar ingreso</span><button class="modal-close" onclick="cerrarModal('modal-ganancia')">&#215;</button></div><div class="modal-body"><div class="form-row"><div class="form-group"><label>Fecha *</label><input type="date" id="g-fecha"></div><div class="form-group"><label>Tipo</label><select id="g-tipo-sel"><option value="Reparacion">Reparacion</option><option value="Venta">Venta</option><option value="Servicio">Servicio tecnico</option><option value="Otro">Otro</option></select></div></div><div class="form-group"><label>Concepto *</label><input type="text" id="g-concepto" placeholder="Ej: Reparacion notebook HP..."></div><div class="form-row"><div class="form-group"><label>Costo ($)</label><input type="number" id="g-costo" oninput="calcGanancia()"></div><div class="form-group"><label>Venta / Cobrado ($)</label><input type="number" id="g-venta" oninput="calcGanancia()"></div></div><div class="form-group"><label>Ganancia neta</label><input type="number" id="g-ganancia-calc" readonly style="color:var(--green);font-weight:700;font-size:15px"></div><div class="form-group"><label>Observaciones</label><textarea id="g-obs"></textarea></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-ganancia')">Cancelar</button><button class="btn btn-primary" onclick="guardarGanancia()">Guardar</button></div></div></div>
 
 <!-- MODAL RECORDATORIO -->
 <div class="modal-overlay" id="modal-recordatorio"><div class="modal" style="width:440px"><div class="modal-header"><span class="modal-title" id="modal-rec-title">Nuevo recordatorio</span><button class="modal-close" onclick="cerrarModal('modal-recordatorio')">&#215;</button></div><div class="modal-body"><div class="form-group"><label>Descripcion *</label><textarea id="rec-texto" placeholder="Ej: Llamar a Juan cuando llegue el repuesto, Comprar pasta termica..." style="min-height:90px"></textarea></div><div class="form-row"><div class="form-group"><label>Prioridad</label><select id="rec-prioridad"><option value="urgente">&#128308; Urgente</option><option value="normal" selected>&#128993; Normal</option><option value="info">&#128994; Informativo</option></select></div><div class="form-group"><label>Vencimiento (opcional)</label><input type="date" id="rec-vence"></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-recordatorio')">Cancelar</button><button class="btn btn-primary" onclick="guardarRecordatorio()">Guardar</button></div></div></div>
+
+<!-- MODAL CUENTA CORRIENTE -->
+<div class="modal-overlay" id="modal-cc"><div class="modal" style="width:460px"><div class="modal-header"><span class="modal-title">Nuevo movimiento</span><button class="modal-close" onclick="cerrarModal('modal-cc')">&#215;</button></div><div class="modal-body">
+<div class="form-group"><label>Cliente *</label><select id="cc-cliente"><option value="">-- Seleccionar --</option></select></div>
+<div class="form-row"><div class="form-group"><label>Fecha</label><input type="date" id="cc-fecha"></div><div class="form-group"><label>Tipo</label><select id="cc-tipo"><option value="deuda">Deuda (debe)</option><option value="pago">Pago (cancela deuda)</option><option value="adelanto">Adelanto (a favor)</option></select></div></div>
+<div class="form-group"><label>Concepto *</label><input type="text" id="cc-concepto" placeholder="Ej: Saldo orden #5, Pago parcial, Adelanto reparacion..."></div>
+<div class="form-group"><label>Monto ($) *</label><input type="number" id="cc-monto" placeholder="0.00"></div>
+</div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-cc')">Cancelar</button><button class="btn btn-primary" onclick="guardarCC()">Guardar</button></div></div></div>
 
 <script>
 var SUPA_URL='https://nmedfphqoqqobmkoaytm.supabase.co';
@@ -527,7 +560,7 @@ function aplicarConfig(){
   document.getElementById('footerNombre').textContent=cfg.nombre||'FlorentinoPc';
 }
 
-var clientes=[],ordenes=[],ganancias=[],recordatorios=[];
+var clientes=[],ordenes=[],ganancias=[],recordatorios=[],cuentaCorriente=[];
 var editId=null,gTab='dia',ordenEditandoId=null,recEditId=null;
 
 function hoy(){return new Date().toISOString().split('T')[0];}
@@ -543,8 +576,8 @@ document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.get
 
 function cargarTodo(){
   mostrarLoading('Cargando datos...');
-  Promise.all([sGet('clientes','order=nombre.asc'),sGet('ordenes','order=num.desc'),sGet('ganancias','order=fecha.desc')]).then(function(res){
-    clientes=res[0]||[];ordenes=res[1]||[];ganancias=res[2]||[];
+  Promise.all([sGet('clientes','order=nombre.asc'),sGet('ordenes','order=num.desc'),sGet('ganancias','order=fecha.desc'),sGet('cuenta_corriente','order=fecha.desc')]).then(function(res){
+    clientes=res[0]||[];ordenes=res[1]||[];ganancias=res[2]||[];cuentaCorriente=res[3]||[];
     recordatorios=JSON.parse(localStorage.getItem('fpc_recordatorios')||'[]');
     ocultarLoading();renderDashboard();
   }).catch(function(){ocultarLoading();toast('Error al conectar con Supabase','err');});
@@ -555,18 +588,19 @@ function toggleMenu(){var s=document.getElementById('sidebar'),o=document.getEle
 function cerrarMenu(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open');}
 
 // NAV
-var sTitles={dashboard:'Dashboard',clientes:'Clientes',ordenes:'Ordenes',ganancias:'Ganancias',recordatorios:'Recordatorios',config:'Configuracion'};
+var sTitles={dashboard:'Dashboard',clientes:'Clientes',ordenes:'Ordenes',ganancias:'Ganancias',cuentacorriente:'Cuenta Corriente',recordatorios:'Recordatorios',config:'Configuracion'};
 function goSection(sec){
   document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('section-'+sec).classList.add('active');
-  var order=['dashboard','clientes','ordenes','ganancias','recordatorios','config'];
+  var order=['dashboard','clientes','ordenes','ganancias','cuentacorriente','recordatorios','config'];
   document.querySelectorAll('.nav-item')[order.indexOf(sec)].classList.add('active');
   document.getElementById('topbarTitle').textContent=sTitles[sec];
   cerrarMenu();
   if(sec==='clientes')renderClientes();
   if(sec==='ordenes')renderOrdenes();
   if(sec==='ganancias'){renderGanancias();renderGrafico();}
+  if(sec==='cuentacorriente')renderCuentaCorriente();
   if(sec==='dashboard')renderDashboard();
   if(sec==='recordatorios')renderRecordatorios();
   if(sec==='config')renderConfig();
@@ -719,30 +753,46 @@ function abrirModalCliente(id){editId=id||null;var c=id?clientes.find(function(x
 function guardarCliente(){var nombre=document.getElementById('c-nombre').value.trim(),tel=document.getElementById('c-tel').value.trim();if(!nombre||!tel){toast('Nombre y telefono son obligatorios','err');return;}var data={nombre:nombre,tel:tel,email:document.getElementById('c-email').value.trim(),dni:document.getElementById('c-dni').value.trim(),localidad:document.getElementById('c-localidad').value.trim(),dir:document.getElementById('c-dir').value.trim(),notas:document.getElementById('c-notas').value.trim()};mostrarLoading('Guardando...');var p=editId?sUpdate('clientes',editId,data):sInsert('clientes',Object.assign({id:Date.now()},data));p.then(function(){return sGet('clientes','order=nombre.asc');}).then(function(res){clientes=res||[];ocultarLoading();cerrarModal('modal-cliente');renderClientes();renderDashboard();toast('Cliente guardado','ok');}).catch(function(){ocultarLoading();toast('Error al guardar','err');});}
 function eliminarCliente(id){if(!confirm('Eliminar este cliente?'))return;mostrarLoading('Eliminando...');sDelete('clientes',id).then(function(){clientes=clientes.filter(function(x){return x.id!==id;});ocultarLoading();renderClientes();renderDashboard();toast('Cliente eliminado','ok');}).catch(function(){ocultarLoading();toast('Error','err');});}
 function verHistorial(id){var c=clientes.find(function(x){return x.id===id;});var ords=ordenes.filter(function(o){return o.cliente_id===id;});document.getElementById('modal-historial-title').textContent='Historial: '+c.nombre;document.getElementById('historial-info').innerHTML='<strong>'+c.nombre+'</strong> | Tel: '+c.tel+(c.dni?' | DNI: '+c.dni:'')+(c.localidad?' | '+c.localidad:'')+'<br><span style="color:var(--text3);font-size:12px">'+ords.length+' orden(es)</span>';document.getElementById('historial-content').innerHTML=!ords.length?'<div style="padding:24px;text-align:center;color:var(--text3)">Sin ordenes</div>':'<div class="historial-list">'+ords.map(function(o){return '<div class="historial-item"><div><strong>#'+o.num+'</strong> &mdash; '+o.equipo+(o.modelo?' / '+o.modelo:'')+'<br><span style="color:var(--text2);font-size:12px">'+o.problema+'</span></div><div style="text-align:right;white-space:nowrap">'+estadoBadge(o.estado)+'<br><span style="font-size:11px;color:var(--text3)">'+o.fecha+'</span>'+(o.presupuesto?'<br><span style="color:var(--accent);font-size:12px">'+fmtPeso(o.presupuesto)+'</span>':'')+'</div></div>';}).join('')+'</div>';abrirModal('modal-historial');}
-function renderClientes(){var q=document.getElementById('buscar-cliente').value.toLowerCase();var lista=clientes.filter(function(c){return !q||c.nombre.toLowerCase().indexOf(q)>=0||(c.tel&&c.tel.indexOf(q)>=0)||(c.dni&&c.dni.indexOf(q)>=0);});document.getElementById('cant-clientes').textContent=lista.length+' cliente(s)';var tbody=document.getElementById('clientes-body');if(!lista.length){tbody.innerHTML='<tr class="empty-row"><td colspan="6">No hay clientes</td></tr>';return;}tbody.innerHTML=lista.map(function(c,i){var n=ordenes.filter(function(o){return o.cliente_id===c.id;}).length;return '<tr><td style="color:var(--text3)">'+(i+1)+'</td><td><strong>'+c.nombre+'</strong><br><span style="font-size:11px;color:var(--text3)">'+n+' orden(es)</span></td><td>'+c.tel+'</td><td>'+(c.dni||'-')+'</td><td>'+(c.localidad||'-')+'</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="verHistorial('+c.id+')">Hist.</button> <button class="btn btn-ghost btn-sm" onclick="abrirModalCliente('+c.id+')">Edit.</button> <button class="btn btn-danger btn-sm" onclick="eliminarCliente('+c.id+')">X</button></td></tr>';}).join('');}
+function renderClientes(){var q=document.getElementById('buscar-cliente').value.toLowerCase();var lista=clientes.filter(function(c){return !q||c.nombre.toLowerCase().indexOf(q)>=0||(c.tel&&c.tel.indexOf(q)>=0)||(c.dni&&c.dni.indexOf(q)>=0);});document.getElementById('cant-clientes').textContent=lista.length+' cliente(s)';var tbody=document.getElementById('clientes-body');if(!lista.length){tbody.innerHTML='<tr class="empty-row"><td colspan="6">No hay clientes</td></tr>';return;}tbody.innerHTML=lista.map(function(c,i){var n=ordenes.filter(function(o){return o.cliente_id===c.id;}).length;var s=calcularSaldoCliente(c.id);var saldoHtml=s.saldo>0?'<br><span style="font-size:11px;color:var(--red)">Debe '+fmtPeso(s.saldo)+'</span>':s.saldo<0?'<br><span style="font-size:11px;color:var(--green)">A favor '+fmtPeso(Math.abs(s.saldo))+'</span>':'';return '<tr><td style="color:var(--text3)">'+(i+1)+'</td><td><strong>'+c.nombre+'</strong><br><span style="font-size:11px;color:var(--text3)">'+n+' orden(es)</span>'+saldoHtml+'</td><td>'+c.tel+'</td><td>'+(c.dni||'-')+'</td><td>'+(c.localidad||'-')+'</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="verHistorial('+c.id+')">Hist.</button> <button class="btn btn-ghost btn-sm" onclick="abrirModalCliente('+c.id+')">Edit.</button> <button class="btn btn-danger btn-sm" onclick="eliminarCliente('+c.id+')">X</button></td></tr>';}).join('');}
 
 // ORDENES
 function getNumOrden(){var max=0;ordenes.forEach(function(o){if(o.num>max)max=o.num;});return max+1;}
 function abrirModalOrden(id){editId=id||null;var o=id?ordenes.find(function(x){return x.id===id;}):null;document.getElementById('modal-orden-title').textContent=o?'Editar orden':'Nueva orden';var sel=document.getElementById('o-cliente');sel.innerHTML='<option value="">-- Seleccionar --</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+c.nombre+'</option>';}).join('');if(o){sel.value=o.cliente_id;document.getElementById('o-fecha').value=o.fecha||'';document.getElementById('o-equipo').value=o.equipo||'';document.getElementById('o-modelo').value=o.modelo||'';document.getElementById('o-serie').value=o.serie||'';document.getElementById('o-accesorios').value=o.accesorios||'';document.getElementById('o-problema').value=o.problema||'';document.getElementById('o-diagnostico').value=o.diagnostico||'';document.getElementById('o-presupuesto').value=o.presupuesto||'';document.getElementById('o-estado').value=o.estado||'Ingresado';document.getElementById('o-obs').value=o.obs||'';}else{sel.value='';document.getElementById('o-fecha').value=hoy();['o-equipo','o-modelo','o-serie','o-accesorios','o-problema','o-diagnostico','o-obs'].forEach(function(f){document.getElementById(f).value='';});document.getElementById('o-presupuesto').value='';document.getElementById('o-estado').value='Ingresado';}abrirModal('modal-orden');}
 function guardarOrden(){var cid=parseInt(document.getElementById('o-cliente').value),eq=document.getElementById('o-equipo').value.trim(),pr=document.getElementById('o-problema').value.trim();if(!cid||!eq||!pr){toast('Cliente, equipo y problema son obligatorios','err');return;}var cli=clientes.find(function(c){return c.id===cid;});var data={cliente_id:cid,cliente_nombre:cli.nombre,equipo:eq,modelo:document.getElementById('o-modelo').value.trim(),serie:document.getElementById('o-serie').value.trim(),accesorios:document.getElementById('o-accesorios').value.trim(),problema:pr,diagnostico:document.getElementById('o-diagnostico').value.trim(),presupuesto:parseFloat(document.getElementById('o-presupuesto').value)||0,estado:document.getElementById('o-estado').value,obs:document.getElementById('o-obs').value.trim(),ultimo_movimiento:hoy(),fecha:document.getElementById('o-fecha').value};mostrarLoading('Guardando...');var p=editId?sUpdate('ordenes',editId,data):sInsert('ordenes',Object.assign({id:Date.now(),num:getNumOrden()},data));p.then(function(){return sGet('ordenes','order=num.desc');}).then(function(res){ordenes=res||[];ocultarLoading();cerrarModal('modal-orden');renderOrdenes();renderDashboard();toast('Orden guardada','ok');}).catch(function(){ocultarLoading();toast('Error al guardar','err');});}
 function eliminarOrden(id){if(!confirm('Eliminar esta orden?'))return;mostrarLoading('Eliminando...');sDelete('ordenes',id).then(function(){ordenes=ordenes.filter(function(x){return x.id!==id;});ocultarLoading();renderOrdenes();renderDashboard();toast('Orden eliminada','ok');}).catch(function(){ocultarLoading();toast('Error','err');});}
-function abrirModalEstado(id){ordenEditandoId=id;var o=ordenes.find(function(x){return x.id===id;});document.getElementById('estado-orden-info').innerHTML='<strong>Orden #'+o.num+'</strong> &mdash; '+o.cliente_nombre+'<br><span style="color:var(--text2)">'+o.equipo+(o.modelo?' / '+o.modelo:'')+'</span>';document.getElementById('e-estado').value=o.estado;document.getElementById('e-diagnostico').value=o.diagnostico||'';document.getElementById('e-presupuesto').value=o.presupuesto||'';abrirModal('modal-estado');}
+function abrirModalEstado(id){ordenEditandoId=id;var o=ordenes.find(function(x){return x.id===id;});document.getElementById('estado-orden-info').innerHTML='<strong>Orden #'+o.num+'</strong> &mdash; '+o.cliente_nombre+'<br><span style="color:var(--text2)">'+o.equipo+(o.modelo?' / '+o.modelo:'')+'</span>';document.getElementById('e-estado').value=o.estado;document.getElementById('e-diagnostico').value=o.diagnostico||'';document.getElementById('e-presupuesto').value=o.presupuesto||'';document.getElementById('e-pago-tipo').value='pago';toggleEPagoWrap();abrirModal('modal-estado');}
+function toggleEPagoWrap(){
+  var est=document.getElementById('e-estado').value;
+  document.getElementById('e-pago-wrap').style.display=(est==='Entregado')?'block':'none';
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var sel=document.getElementById('e-estado');
+  if(sel)sel.addEventListener('change',toggleEPagoWrap);
+});
 function guardarEstado(){
   var nuevoEstado=document.getElementById('e-estado').value;
   var presupuesto=parseFloat(document.getElementById('e-presupuesto').value)||0;
+  var pagoTipo=document.getElementById('e-pago-tipo').value;
   var data={estado:nuevoEstado,diagnostico:document.getElementById('e-diagnostico').value.trim(),presupuesto:presupuesto,ultimo_movimiento:hoy()};
   var ordenActual=ordenes.find(function(x){return x.id===ordenEditandoId;});
   var estadoAnterior=ordenActual?ordenActual.estado:'';
   mostrarLoading('Actualizando...');
   sUpdate('ordenes',ordenEditandoId,data).then(function(){return sGet('ordenes','order=num.desc');}).then(function(res){
     ordenes=res||[];
-    if(nuevoEstado==='Entregado'&&estadoAnterior!=='Entregado'&&presupuesto>0){
+    if(nuevoEstado==='Entregado'&&estadoAnterior!=='Entregado'&&presupuesto>0&&pagoTipo!=='ninguno'){
       var o=ordenes.find(function(x){return x.id===ordenEditandoId;});
       var concepto='Orden #'+(o?o.num:'')+(o?' - '+o.cliente_nombre:'')+(o?' - '+o.equipo:'');
-      return sInsert('ganancias',{id:Date.now(),fecha:hoy(),tipo:'Reparacion',concepto:concepto,costo:0,venta:presupuesto,obs:'Automatico desde orden'}).then(function(){return sGet('ganancias','order=fecha.desc');}).then(function(gRes){
-        ganancias=gRes||[];ocultarLoading();cerrarModal('modal-estado');renderOrdenes();renderDashboard();
-        toast('Orden entregada y ganancia registrada ✓','ok');
-      });
+      if(pagoTipo==='deuda'){
+        return sInsert('cuenta_corriente',{id:Date.now(),cliente_id:o.cliente_id,cliente_nombre:o.cliente_nombre,fecha:hoy(),tipo:'deuda',concepto:concepto,monto:presupuesto,orden_id:o.id}).then(function(){return sGet('cuenta_corriente','order=fecha.desc');}).then(function(ccRes){
+          cuentaCorriente=ccRes||[];ocultarLoading();cerrarModal('modal-estado');renderOrdenes();renderDashboard();
+          toast('Orden entregada — cargada a cuenta corriente ✓','ok');
+        });
+      } else {
+        return sInsert('ganancias',{id:Date.now(),fecha:hoy(),tipo:'Reparacion',concepto:concepto,costo:0,venta:presupuesto,obs:'Automatico desde orden'}).then(function(){return sGet('ganancias','order=fecha.desc');}).then(function(gRes){
+          ganancias=gRes||[];ocultarLoading();cerrarModal('modal-estado');renderOrdenes();renderDashboard();
+          toast('Orden entregada y ganancia registrada ✓','ok');
+        });
+      }
     }
     ocultarLoading();cerrarModal('modal-estado');renderOrdenes();renderDashboard();toast('Orden actualizada','ok');
   }).catch(function(){ocultarLoading();toast('Error al actualizar','err');});
@@ -790,6 +840,86 @@ function exportarCSV(){var rows=[['Fecha','Tipo','Concepto','Costo','Venta','Gan
 function importarJSON(input){var file=input.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){try{var data=JSON.parse(e.target.result);if(!data.clientes||!data.ordenes||!data.ganancias){toast('Archivo invalido','err');return;}if(!confirm('Esto importa todos los datos a Supabase. Continuar?')){input.value='';return;}mostrarLoading('Importando...');var promesas=[];data.clientes.forEach(function(c){promesas.push(sInsert('clientes',{id:c.id,nombre:c.nombre,tel:c.tel,email:c.email||'',dni:c.dni||'',localidad:c.localidad||'',dir:c.dir||'',notas:c.notas||''}));});data.ordenes.forEach(function(o){promesas.push(sInsert('ordenes',{id:o.id,num:o.num,fecha:o.fecha,cliente_id:o.clienteId||o.cliente_id,cliente_nombre:o.clienteNombre||o.cliente_nombre,equipo:o.equipo,modelo:o.modelo||'',serie:o.serie||'',accesorios:o.accesorios||'',problema:o.problema,diagnostico:o.diagnostico||'',presupuesto:o.presupuesto||0,estado:o.estado,obs:o.obs||'',ultimo_movimiento:o.ultimoMovimiento||o.ultimo_movimiento||o.fecha}));});data.ganancias.forEach(function(g){promesas.push(sInsert('ganancias',{id:g.id,fecha:g.fecha,tipo:g.tipo,concepto:g.concepto,costo:g.costo||0,venta:g.venta||0,obs:g.obs||''}));});Promise.all(promesas).then(function(){return cargarTodo();}).then(function(){ocultarLoading();toast('Importacion completada','ok');}).catch(function(){ocultarLoading();toast('Error en la importacion','err');});}catch(err){toast('Error al leer el archivo','err');}input.value='';};reader.readAsText(file);}
 function borrarTodo(){if(!confirm('ATENCION: Se borraran TODOS los datos.'))return;var conf=prompt('Escribi BORRAR para confirmar:');if(conf!=='BORRAR'){toast('Cancelado','err');return;}mostrarLoading('Borrando...');Promise.all([supaFetch('ganancias?id=gt.0',{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}}),supaFetch('ordenes?id=gt.0',{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}}),supaFetch('clientes?id=gt.0',{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}})]).then(function(){clientes=[];ordenes=[];ganancias=[];ocultarLoading();renderConfig();renderDashboard();toast('Datos eliminados','err');}).catch(function(){ocultarLoading();toast('Error','err');});}
 
+// CUENTA CORRIENTE
+function abrirModalCC(clienteId){
+  document.getElementById('cc-fecha').value=hoy();
+  document.getElementById('cc-tipo').value='deuda';
+  document.getElementById('cc-concepto').value='';
+  document.getElementById('cc-monto').value='';
+  var sel=document.getElementById('cc-cliente');
+  sel.innerHTML='<option value="">-- Seleccionar --</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+c.nombre+'</option>';}).join('');
+  if(clienteId)sel.value=clienteId;
+  abrirModal('modal-cc');
+}
+function guardarCC(){
+  var cid=parseInt(document.getElementById('cc-cliente').value);
+  var concepto=document.getElementById('cc-concepto').value.trim();
+  var monto=parseFloat(document.getElementById('cc-monto').value)||0;
+  if(!cid||!concepto||monto<=0){toast('Cliente, concepto y monto son obligatorios','err');return;}
+  var cli=clientes.find(function(c){return c.id===cid;});
+  var data={id:Date.now(),cliente_id:cid,cliente_nombre:cli.nombre,fecha:document.getElementById('cc-fecha').value,tipo:document.getElementById('cc-tipo').value,concepto:concepto,monto:monto};
+  mostrarLoading('Guardando...');
+  sInsert('cuenta_corriente',data).then(function(){return sGet('cuenta_corriente','order=fecha.desc');}).then(function(res){
+    cuentaCorriente=res||[];ocultarLoading();cerrarModal('modal-cc');renderCuentaCorriente();renderDashboard();toast('Movimiento guardado','ok');
+  }).catch(function(){ocultarLoading();toast('Error al guardar','err');});
+}
+function eliminarCC(id){
+  if(!confirm('Eliminar este movimiento?'))return;
+  mostrarLoading('Eliminando...');
+  sDelete('cuenta_corriente',id).then(function(){
+    cuentaCorriente=cuentaCorriente.filter(function(x){return x.id!==id;});
+    ocultarLoading();renderCuentaCorriente();renderDashboard();toast('Movimiento eliminado','ok');
+  }).catch(function(){ocultarLoading();toast('Error al eliminar','err');});
+}
+function calcularSaldoCliente(clienteId){
+  var movs=cuentaCorriente.filter(function(m){return m.cliente_id===clienteId;});
+  var debe=movs.filter(function(m){return m.tipo==='deuda';}).reduce(function(a,m){return a+(m.monto||0);},0);
+  var favor=movs.filter(function(m){return m.tipo==='pago'||m.tipo==='adelanto';}).reduce(function(a,m){return a+(m.monto||0);},0);
+  return {debe:debe,favor:favor,saldo:debe-favor};
+}
+function renderCuentaCorriente(){
+  var selFiltro=document.getElementById('cc-cliente-filtro');
+  if(selFiltro.options.length<=1){
+    selFiltro.innerHTML='<option value="">Todos los clientes</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+c.nombre+'</option>';}).join('');
+  }
+  var filtroCliente=selFiltro.value;
+
+  // Resumen general
+  var todosSaldos=clientes.map(function(c){return Object.assign({cliente:c},calcularSaldoCliente(c.id));}).filter(function(s){return s.debe>0||s.favor>0;});
+  var totalDeuda=todosSaldos.reduce(function(a,s){return a+Math.max(s.saldo,0);},0);
+  var totalFavor=todosSaldos.reduce(function(a,s){return a+Math.max(-s.saldo,0);},0);
+  document.getElementById('cc-total-deuda').textContent=fmtPeso(totalDeuda);
+  document.getElementById('cc-total-favor').textContent=fmtPeso(totalFavor);
+  document.getElementById('cc-clientes-saldo').textContent=todosSaldos.length;
+
+  // Tabla de saldos por cliente
+  var tbodySaldos=document.getElementById('cc-saldos-body');
+  var listaSaldos=filtroCliente?todosSaldos.filter(function(s){return s.cliente.id===parseInt(filtroCliente);}):todosSaldos;
+  if(!listaSaldos.length){
+    tbodySaldos.innerHTML='<tr class="empty-row"><td colspan="5">No hay saldos pendientes</td></tr>';
+  } else {
+    tbodySaldos.innerHTML=listaSaldos.sort(function(a,b){return b.saldo-a.saldo;}).map(function(s){
+      var saldoColor=s.saldo>0?'var(--red)':s.saldo<0?'var(--green)':'var(--text2)';
+      var saldoTexto=s.saldo>0?fmtPeso(s.saldo)+' (debe)':s.saldo<0?fmtPeso(Math.abs(s.saldo))+' (a favor)':'$0';
+      return '<tr><td><strong>'+s.cliente.nombre+'</strong></td><td style="color:var(--red)">'+fmtPeso(s.debe)+'</td><td style="color:var(--green)">'+fmtPeso(s.favor)+'</td><td style="color:'+saldoColor+';font-weight:700">'+saldoTexto+'</td><td><button class="btn btn-ghost btn-sm" onclick="abrirModalCC('+s.cliente.id+')">+ Movimiento</button></td></tr>';
+    }).join('');
+  }
+
+  // Tabla de movimientos
+  var tbodyMov=document.getElementById('cc-movimientos-body');
+  var movs=filtroCliente?cuentaCorriente.filter(function(m){return m.cliente_id===parseInt(filtroCliente);}):cuentaCorriente.slice();
+  document.getElementById('cant-cc').textContent=movs.length+' movimiento(s)';
+  if(!movs.length){
+    tbodyMov.innerHTML='<tr class="empty-row"><td colspan="6">No hay movimientos registrados</td></tr>';
+  } else {
+    var tipoLabels={deuda:'Deuda',pago:'Pago',adelanto:'Adelanto'};
+    var tipoColor={deuda:'var(--red)',pago:'var(--green)',adelanto:'var(--accent)'};
+    tbodyMov.innerHTML=movs.map(function(m){
+      return '<tr><td>'+m.fecha+'</td><td>'+m.cliente_nombre+'</td><td><span class="badge" style="background:'+tipoColor[m.tipo]+'22;color:'+tipoColor[m.tipo]+'">'+(tipoLabels[m.tipo]||m.tipo)+'</span></td><td>'+m.concepto+'</td><td style="color:'+tipoColor[m.tipo]+';font-weight:700">'+(m.tipo==='deuda'?'+':'-')+fmtPeso(m.monto)+'</td><td><button class="btn btn-danger btn-sm" onclick="eliminarCC('+m.id+')">X</button></td></tr>';
+    }).join('');
+  }
+}
+
 // DASHBOARD
 function renderDashboard(){
   var h=hoy();var ma=h.substring(0,7);var ea=['Ingresado','Diagnostico','Presupuestado','Aprobado','Reparacion'];var da=cfg.diasAlerta||3;
@@ -810,6 +940,8 @@ function renderDashboard(){
   document.getElementById('c-ganancia-hoy').style.color=gh>=0?'var(--green)':'var(--red)';
   var fd=new Date();var dias=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
   document.getElementById('dash-fecha').textContent=dias[fd.getDay()]+' '+fd.getDate()+' de '+mesesF()[fd.getMonth()];
+  var deudaTotal=clientes.reduce(function(acc,c){var s=calcularSaldoCliente(c.id);return acc+Math.max(s.saldo,0);},0);
+  document.getElementById('d-deuda-total').textContent=fmtPeso(deudaTotal);
   renderRecordatoriosDash();
   var rec=ordenes.slice(0,6);var tbody=document.getElementById('dash-ordenes-body');
   if(!rec.length){tbody.innerHTML='<tr class="empty-row"><td colspan="5">No hay ordenes aun</td></tr>';return;}
