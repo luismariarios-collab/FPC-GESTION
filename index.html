@@ -776,25 +776,9 @@ select option{background:var(--surface)}
 </div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-proveedor')">Cancelar</button><button class="btn btn-primary" onclick="guardarProveedor()">Guardar</button></div></div></div>
 
 <!-- MODAL BUSCAR PRECIO (desde orden) -->
-<div class="modal-overlay" id="modal-buscar-precio"><div class="modal" style="width:640px"><div class="modal-header"><span class="modal-title">Armar presupuesto desde lista</span><button class="modal-close" onclick="cerrarModal('modal-buscar-precio')">&#215;</button></div><div class="modal-body">
-  <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px">
-    <input type="text" id="precio-buscar" placeholder="Buscar por nombre, codigo o fabricante..." oninput="buscarPrecio()">
-    <select id="precio-filtro-fab" onchange="buscarPrecio()" style="min-width:140px"><option value="">Todos los fabricantes</option></select>
-  </div>
-  <div id="precio-resultados" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:14px"></div>
-  <div id="presup-items-wrap" style="display:none">
-    <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Items seleccionados</div>
-    <div id="presup-items-lista" style="margin-bottom:10px"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:10px">
-      <div style="font-size:13px;color:var(--text2)">Total estimado (sin IVA)</div>
-      <div id="presup-total" style="font-size:18px;font-weight:800;color:var(--accent)">USD 0,00</div>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-ghost" onclick="limpiarPresupuesto()">Limpiar</button>
-      <button class="btn btn-print" onclick="imprimirPresupuestoLista()">🖨 Imprimir presupuesto</button>
-      <button class="btn btn-primary" onclick="copiarPresupuestoAOrden()">Usar en orden activa</button>
-    </div>
-  </div>
+<div class="modal-overlay" id="modal-buscar-precio"><div class="modal" style="width:580px"><div class="modal-header"><span class="modal-title">Consultar precios</span><button class="modal-close" onclick="cerrarModal('modal-buscar-precio')">&#215;</button></div><div class="modal-body">
+  <div class="form-group"><label>Buscar producto o repuesto</label><input type="text" id="precio-buscar" placeholder="Escribi el producto..." oninput="buscarPrecio()"></div>
+  <div id="precio-resultados" style="max-height:300px;overflow-y:auto"></div>
 </div></div></div>
 
 <div class="modal-overlay" id="modal-recordatorio"><div class="modal" style="width:440px"><div class="modal-header"><span class="modal-title" id="modal-rec-title">Nuevo recordatorio</span><button class="modal-close" onclick="cerrarModal('modal-recordatorio')">&#215;</button></div><div class="modal-body"><div class="form-group"><label>Descripcion *</label><textarea id="rec-texto" placeholder="Ej: Llamar a Juan cuando llegue el repuesto..." style="min-height:90px"></textarea></div><div class="form-row"><div class="form-group"><label>Prioridad</label><select id="rec-prioridad"><option value="urgente">&#128308; Urgente</option><option value="normal" selected>&#128993; Normal</option><option value="info">&#128994; Informativo</option></select></div><div class="form-group"><label>Vencimiento (opcional)</label><input type="date" id="rec-vence"></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-recordatorio')">Cancelar</button><button class="btn btn-primary" onclick="guardarRecordatorio()">Guardar</button></div></div></div>
@@ -1554,143 +1538,34 @@ function eliminarProducto(id){
 }
 
 // CONSULTA DE PRECIO DESDE ORDEN
-var presupuestoItems=[];
-
-function abrirBuscarPrecio(ordenId){
-  presupuestoOrdenId=ordenId||null;
+function abrirBuscarPrecio(){
   document.getElementById('precio-buscar').value='';
-  // Cargar fabricantes en filtro
-  var fabs=[...new Set(productosProveedores.map(function(p){return p.categoria;}).filter(Boolean))].sort();
-  var selFab=document.getElementById('precio-filtro-fab');
-  selFab.innerHTML='<option value="">Todos los fabricantes</option>'+fabs.map(function(f){return '<option value="'+f+'">'+f+'</option>';}).join('');
-  buscarPrecio();
-  renderPresupuestoItems();
+  document.getElementById('precio-resultados').innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Escribi un producto para buscar</div>';
   abrirModal('modal-buscar-precio');
   setTimeout(function(){document.getElementById('precio-buscar').focus();},100);
 }
-
-var presupuestoOrdenId=null;
 function buscarPrecio(){
-  var q=(document.getElementById('precio-buscar').value||'').toLowerCase().trim();
-  var fab=(document.getElementById('precio-filtro-fab').value||'').toLowerCase();
+  var q=document.getElementById('precio-buscar').value.toLowerCase().trim();
   var el=document.getElementById('precio-resultados');
-  // Sin filtro muestra los primeros 30
-  var res=productosProveedores.filter(function(p){
-    if(fab&&(!p.categoria||p.categoria.toLowerCase()!==fab))return false;
-    if(!q)return true;
-    return p.producto.toLowerCase().indexOf(q)>=0||
-           (p.codigo&&p.codigo.toLowerCase().indexOf(q)>=0)||
-           (p.categoria&&p.categoria.toLowerCase().indexOf(q)>=0)||
-           (p.proveedor_nombre&&p.proveedor_nombre.toLowerCase().indexOf(q)>=0);
-  }).slice(0,40);
-  if(!res.length){
-    el.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">'+(q?'Sin resultados para "'+q+'"':'Usa el filtro de fabricante o escribi para buscar')+'</div>';
-    return;
-  }
+  if(!q||q.length<2){el.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Escribi al menos 2 caracteres</div>';return;}
+  var res=productosProveedores.filter(function(p){return p.producto.toLowerCase().indexOf(q)>=0||(p.codigo&&p.codigo.toLowerCase().indexOf(q)>=0);});
+  if(!res.length){el.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Sin resultados para "'+q+'"</div>';return;}
   el.innerHTML=res.map(function(p){
-    var precioNum=parseFloat(p.precio)||0;
-    var precioStr=precioNum?'USD '+precioNum.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
-    var ivaStr=p.iva?p.iva.toString().replace('IVA_','').replace('IVA ','').trim():'';
-    return '<div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--accent-glow)'" onmouseout="this.style.background=''">'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.producto+'</div>'+
-        '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+(p.categoria||'')+( p.codigo?' &nbsp;|&nbsp; Cod: '+p.codigo:'')+' &nbsp;|&nbsp; '+p.proveedor_nombre+'</div>'+
-        (p.observaciones?'<div style="font-size:11px;color:var(--red);margin-top:2px">⚠ '+p.observaciones+'</div>':'')+
+    var precioStr=p.precio?'USD '+parseFloat(p.precio).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+    var ivaStr=p.iva?(' + IVA '+p.iva.toString().replace('IVA_','').replace('IVA ','')):'' ;
+    var obsStr=p.observaciones?'<span style="color:var(--red)"> ⚠ '+p.observaciones+'</span>':'';
+    return '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px">'+
+      '<div>'+
+        '<div style="font-weight:600;font-size:13px">'+p.producto+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+p.proveedor_nombre+(p.categoria?' | '+p.categoria:'')+(p.codigo?' | Cod: '+p.codigo:'')+'</div>'+
+        (p.observaciones?'<div style="font-size:11px;color:var(--red)">⚠ '+p.observaciones+'</div>':'')+
       '</div>'+
-      '<div style="text-align:right;flex-shrink:0">'+
-        '<div style="color:var(--accent);font-weight:800;font-size:14px">'+precioStr+'</div>'+
-        (ivaStr?'<div style="font-size:10px;color:var(--text3)">IVA '+ivaStr+'%</div>':'')+
-        '<button class="btn btn-success btn-sm" style="margin-top:4px;font-size:11px" onclick="agregarAPresupuesto('+JSON.stringify(p).replace(/"/g,"&quot;")+')">+ Agregar</button>'+
+      '<div style="text-align:right;white-space:nowrap">'+
+        '<div style="color:var(--accent);font-weight:800;font-size:15px">'+precioStr+'</div>'+
+        (ivaStr?'<div style="font-size:10px;color:var(--text3)">'+ivaStr+'</div>':'')+
       '</div>'+
     '</div>';
-  }).join('')+(res.length===40?'<div style="padding:10px;text-align:center;font-size:12px;color:var(--text3)">Mostrando 40 resultados — refiná la búsqueda para ver más</div>':'');
-}
-
-function agregarAPresupuesto(p){
-  // Si ya existe, aumentar cantidad
-  var idx=presupuestoItems.findIndex(function(x){return x.id===p.id;});
-  if(idx>=0){presupuestoItems[idx].cantidad++;} else {presupuestoItems.push({id:p.id,producto:p.producto,precio:parseFloat(p.precio)||0,iva:p.iva||'',categoria:p.categoria||'',codigo:p.codigo||'',cantidad:1});}
-  renderPresupuestoItems();
-  toast('Agregado: '+p.producto.substring(0,30),'ok');
-}
-
-function renderPresupuestoItems(){
-  var wrap=document.getElementById('presup-items-wrap');
-  var lista=document.getElementById('presup-items-lista');
-  if(!presupuestoItems.length){if(wrap)wrap.style.display='none';return;}
-  if(wrap)wrap.style.display='block';
-  var total=presupuestoItems.reduce(function(acc,i){return acc+i.precio*i.cantidad;},0);
-  if(document.getElementById('presup-total'))document.getElementById('presup-total').textContent='USD '+total.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(lista)lista.innerHTML=presupuestoItems.map(function(item,idx){
-    return '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;font-size:13px">'+
-      '<div><div style="font-weight:600">'+item.producto+'</div><div style="font-size:11px;color:var(--text3)">'+item.categoria+(item.codigo?' | '+item.codigo:'')+(item.iva?' | IVA '+item.iva.replace('IVA_','').replace('IVA ','')+'%':'')+'</div></div>'+
-      '<div style="display:flex;align-items:center;gap:6px">'+
-        '<button class="btn btn-ghost btn-sm" style="padding:3px 8px" onclick="cambiarCantPresup('+idx+',-1)">-</button>'+
-        '<span style="min-width:20px;text-align:center;font-weight:700">'+item.cantidad+'</span>'+
-        '<button class="btn btn-ghost btn-sm" style="padding:3px 8px" onclick="cambiarCantPresup('+idx+',1)">+</button>'+
-      '</div>'+
-      '<div style="color:var(--accent);font-weight:700;white-space:nowrap">USD '+(item.precio*item.cantidad).toLocaleString('es-AR',{minimumFractionDigits:2})+'</div>'+
-      '<button class="btn btn-danger btn-sm" onclick="quitarDePresup('+idx+')">X</button>'+
-    '</div>';
   }).join('');
-}
-
-function cambiarCantPresup(idx,dir){
-  presupuestoItems[idx].cantidad+=dir;
-  if(presupuestoItems[idx].cantidad<=0)presupuestoItems.splice(idx,1);
-  renderPresupuestoItems();
-}
-function quitarDePresup(idx){presupuestoItems.splice(idx,1);renderPresupuestoItems();}
-function limpiarPresupuesto(){if(!confirm('Limpiar todos los items?'))return;presupuestoItems=[];renderPresupuestoItems();}
-
-function imprimirPresupuestoLista(){
-  if(!presupuestoItems.length){toast('Agregá al menos un producto','err');return;}
-  var dir=[cfg.direccion,cfg.localidad].filter(Boolean).join(' - ');
-  var total=presupuestoItems.reduce(function(acc,i){return acc+i.precio*i.cantidad;},0);
-  var itemsHtml=presupuestoItems.map(function(i){
-    return '<tr><td style="padding:8px 12px;border:1px solid #ddd">'+i.producto+'</td>'+
-      '<td style="padding:8px 12px;border:1px solid #ddd;text-align:center">'+i.cantidad+'</td>'+
-      '<td style="padding:8px 12px;border:1px solid #ddd;text-align:right">USD '+i.precio.toLocaleString('es-AR',{minimumFractionDigits:2})+'</td>'+
-      '<td style="padding:8px 12px;border:1px solid #ddd;text-align:right;font-weight:700">USD '+(i.precio*i.cantidad).toLocaleString('es-AR',{minimumFractionDigits:2})+'</td>'+
-      '<td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;color:#888">'+(i.iva?'IVA '+i.iva.replace('IVA_','').replace('IVA ','')+'%':'')+'</td>'+
-    '</tr>';
-  }).join('');
-  var html='<div style="font-family:Arial,sans-serif;max-width:580px;width:100%;margin:0 auto;padding:24px;box-sizing:border-box">'+
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:14px">'+
-      '<div><div style="font-size:24px;font-weight:900;letter-spacing:2px">'+(cfg.nombre||'FlorentinoPc')+'</div>'+(dir?'<div style="font-size:12px;color:#555">'+dir+'</div>':'')+(cfg.telefono?'<div style="font-size:12px;color:#555">Tel: '+cfg.telefono+'</div>':'')+'</div>'+
-      '<div style="text-align:right"><div style="font-size:20px;font-weight:700;color:#b8902f">PRESUPUESTO</div><div style="font-size:12px;color:#555">Fecha: '+hoy()+'</div><div style="font-size:11px;color:#888">Precios en USD - Cotizacion del dia</div></div>'+
-    '</div>'+
-    '<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+
-      '<thead><tr style="background:#f0f0f0"><th style="padding:8px 12px;text-align:left;border:1px solid #ddd;font-size:12px">Producto</th><th style="padding:8px 12px;text-align:center;border:1px solid #ddd;font-size:12px;width:55px">Cant.</th><th style="padding:8px 12px;text-align:right;border:1px solid #ddd;font-size:12px;width:110px">P.Unit.</th><th style="padding:8px 12px;text-align:right;border:1px solid #ddd;font-size:12px;width:110px">Subtotal</th><th style="padding:8px 12px;border:1px solid #ddd;font-size:12px;width:80px">IVA</th></tr></thead>'+
-      '<tbody>'+itemsHtml+'</tbody>'+
-    '</table>'+
-    '<div style="text-align:right;margin-bottom:8px;font-size:12px;color:#777">* Precios sin IVA. El total final puede variar segun cotizacion del dia.</div>'+
-    '<div style="display:flex;justify-content:flex-end">'+
-      '<div style="background:#b8902f;color:#fff;padding:12px 24px;border-radius:6px;text-align:right">'+
-        '<div style="font-size:12px;opacity:.85">TOTAL ESTIMADO (sin IVA)</div>'+
-        '<div style="font-size:22px;font-weight:900">USD '+total.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div>'+
-      '</div>'+
-    '</div>'+
-    '<div style="margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:24px">'+
-      '<div style="text-align:center"><div style="border-top:1px solid #000;padding-top:4px;font-size:12px">Firma del cliente</div></div>'+
-      '<div style="text-align:center"><div style="border-top:1px solid #000;padding-top:4px;font-size:12px">Firma — '+(cfg.nombre||'FlorentinoPc')+'</div></div>'+
-    '</div>'+
-    '<div style="margin-top:12px;text-align:center;font-size:11px;color:#aaa">Presupuesto valido por 48hs sujeto a disponibilidad de stock</div>'+
-  '</div>';
-  document.getElementById('ticketPrint').innerHTML=html;
-  document.getElementById('ticketPrint').style.display='block';
-  window.print();
-  document.getElementById('ticketPrint').style.display='none';
-}
-
-function copiarPresupuestoAOrden(){
-  if(!presupuestoItems.length){toast('Agregá al menos un producto','err');return;}
-  var total=presupuestoItems.reduce(function(acc,i){return acc+i.precio*i.cantidad;},0);
-  var detalle=presupuestoItems.map(function(i){return i.cantidad+'x '+i.producto+' (USD '+i.precio.toLocaleString('es-AR',{minimumFractionDigits:2})+')'}).join(' | ');
-  // Copiar al portapapeles para pegar en observaciones
-  if(navigator.clipboard){navigator.clipboard.writeText(detalle);}
-  cerrarModal('modal-buscar-precio');
-  toast('Detalle copiado al portapapeles — pegalo en las observaciones de la orden','info');
 }
 
 // XLSX via CDN (carga dinamica)
