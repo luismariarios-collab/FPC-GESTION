@@ -1398,15 +1398,56 @@ function importarExcel(){
         var data=new Uint8Array(e.target.result);
         var workbook=XLSX.read(data,{type:'array'});
         var sheet=workbook.Sheets[workbook.SheetNames[0]];
-        var json=XLSX.utils.sheet_to_json(sheet,{defval:''});
-        if(!json.length){toast('El archivo está vacío','err');return;}
-        var keys=Object.keys(json[0]).map(function(k){return k.toLowerCase();});
-        var kCod=Object.keys(json[0]).find(function(k){return k.toLowerCase().indexOf('cod')>=0||k.toLowerCase().indexOf('sku')>=0;});
-        var kProd=Object.keys(json[0]).find(function(k){return k.toLowerCase().indexOf('prod')>=0||k.toLowerCase().indexOf('desc')>=0||k.toLowerCase().indexOf('nombre')>=0||k.toLowerCase().indexOf('articulo')>=0;});
-        var kPrecio=Object.keys(json[0]).find(function(k){return k.toLowerCase().indexOf('prec')>=0||k.toLowerCase().indexOf('cost')>=0||k.toLowerCase().indexOf('valor')>=0;});
-        var kCat=Object.keys(json[0]).find(function(k){return k.toLowerCase().indexOf('cat')>=0||k.toLowerCase().indexOf('rubro')>=0||k.toLowerCase().indexOf('tipo')>=0;});
-        if(!kProd){toast('No se encontró columna de producto en el Excel','err');return;}
-        var productos=json.filter(function(r){return r[kProd];}).map(function(r){return {id:Date.now()+Math.random(),proveedor_id:provId,proveedor_nombre:prov.nombre,codigo:kCod?String(r[kCod]||'').trim():'',producto:String(r[kProd]).trim(),precio:kPrecio?parseFloat(String(r[kPrecio]).replace(/[^\d.]/g,''))||0:0,categoria:kCat?String(r[kCat]||'').trim():''};});
+        // Intentar con headers en fila 1 primero, luego buscar en las primeras 10 filas
+        var json=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});
+        // Si no encontramos columnas utiles, buscar fila de headers manualmente
+        var palabrasProd=['detalle','prod','desc','nombre','articulo','item','model'];
+        var palabrasCod=['articulo','cod','sku','part','ref','id'];
+        var palabrasPrecio=['precio','prec','cost','valor','price','importe','unit'];
+        var palabrasCat=['cat','rubro','tipo','fab','marca','fabricante'];
+        function encontrarKey(keys,palabras){return keys.find(function(k){var kl=k.toLowerCase();return palabras.some(function(p){return kl.indexOf(p)>=0;});});}
+        var kProd=null,kCod=null,kPrecio=null,kCat=null,dataFinal=json;
+        if(json.length){
+          var keys0=Object.keys(json[0]);
+          kProd=encontrarKey(keys0,palabrasProd);
+          kCod=encontrarKey(keys0,palabrasCod);
+          kPrecio=encontrarKey(keys0,palabrasPrecio);
+          kCat=encontrarKey(keys0,palabrasCat);
+        }
+        // Si no encontro columna producto, buscar headers en las primeras 15 filas del sheet raw
+        if(!kProd){
+          var rawJson=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
+          var headerRow=-1;
+          for(var ri=0;ri<Math.min(rawJson.length,15);ri++){
+            var row=rawJson[ri];
+            var rowStr=row.join(' ').toLowerCase();
+            if(palabrasProd.some(function(p){return rowStr.indexOf(p)>=0;})){headerRow=ri;break;}
+          }
+          if(headerRow>=0){
+            var headers=rawJson[headerRow];
+            dataFinal=[];
+            for(var di=headerRow+1;di<rawJson.length;di++){
+              var rowData=rawJson[di];
+              if(!rowData||rowData.every(function(v){return !v;}))continue;
+              var obj={};
+              headers.forEach(function(h,hi){obj[h]=rowData[hi]||'';});
+              dataFinal.push(obj);
+            }
+            kProd=encontrarKey(headers,palabrasProd);
+            kCod=encontrarKey(headers,palabrasCod);
+            kPrecio=encontrarKey(headers,palabrasPrecio);
+            kCat=encontrarKey(headers,palabrasCat);
+            // Para listas como Invid donde ARTICULO es el codigo y DETALLE es el producto
+            if(!kProd&&encontrarKey(headers,['detalle']))kProd=encontrarKey(headers,['detalle']);
+            if(!kCod&&encontrarKey(headers,['articulo']))kCod=encontrarKey(headers,['articulo']);
+          }
+        }
+        if(!kProd){toast('No se encontró columna de producto. Revisá que el Excel tenga una columna con el nombre del producto (DETALLE, PRODUCTO, DESCRIPCION, etc)','err');return;}
+        var productos=dataFinal.filter(function(r){return r[kProd]&&String(r[kProd]).trim();}).map(function(r){
+          var precio=kPrecio?parseFloat(String(r[kPrecio]||'0').replace(',','.').replace(/[^\d.]/g,''))||0:0;
+          var cat=kCat?String(r[kCat]||'').trim():'';
+          return {id:Date.now()+Math.random(),proveedor_id:provId,proveedor_nombre:prov.nombre,codigo:kCod?String(r[kCod]||'').trim():'',producto:String(r[kProd]).trim(),precio:precio,categoria:cat};
+        });
         procesarImportacion(provId,productos,resultado);
       }catch(err){toast('Error al leer el Excel: '+err.message,'err');}
     };
