@@ -671,7 +671,7 @@ select option{background:var(--surface)}
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title">Lista de precios</span><span id="cant-productos" style="font-size:12px;color:var(--text2)"></span></div>
-            <div class="table-wrap"><table><thead><tr><th>Codigo</th><th>Producto</th><th>Categoria</th><th>Proveedor</th><th>Precio</th><th></th></tr></thead><tbody id="productos-body"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Codigo</th><th>Producto / Detalle</th><th>Fabricante</th><th>IVA</th><th>Precio USD</th><th>Obs.</th><th></th></tr></thead><tbody id="productos-body"></tbody></table></div>
           </div>
         </div>
       </div>
@@ -1446,7 +1446,18 @@ function importarExcel(){
         var productos=dataFinal.filter(function(r){return r[kProd]&&String(r[kProd]).trim();}).map(function(r){
           var precio=kPrecio?parseFloat(String(r[kPrecio]||'0').replace(',','.').replace(/[^\d.]/g,''))||0:0;
           var cat=kCat?String(r[kCat]||'').trim():'';
-          return {id:Date.now()+Math.random(),proveedor_id:provId,proveedor_nombre:prov.nombre,codigo:kCod?String(r[kCod]||'').trim():'',producto:String(r[kProd]).trim(),precio:precio,categoria:cat};
+          // Buscar IVA y observaciones
+          var kIva=Object.keys(r).find(function(k){return k.toLowerCase().indexOf('iva')>=0;});
+          var kObs=Object.keys(r).find(function(k){return k.toLowerCase().indexOf('obs')>=0||k.toLowerCase().indexOf('nota')>=0;});
+          var iva=kIva?String(r[kIva]||'').trim():'';
+          var obs=kObs?String(r[kObs]||'').trim():'';
+          // Usar DETALLE como producto si existe (para listas Invid)
+          var kDetalle=Object.keys(r).find(function(k){return k.toLowerCase()==='detalle';});
+          var nombreProd=kDetalle&&r[kDetalle]?String(r[kDetalle]).trim():String(r[kProd]).trim();
+          // Codigo viene de ARTICULO
+          var kArt=Object.keys(r).find(function(k){return k.toLowerCase()==='articulo';});
+          var codProd=kArt&&r[kArt]?String(r[kArt]).trim():(kCod?String(r[kCod]||'').trim():'');
+          return {id:Date.now()+Math.random(),proveedor_id:provId,proveedor_nombre:prov.nombre,codigo:codProd,producto:nombreProd,precio:precio,categoria:cat,iva:iva,observaciones:obs};
         });
         procesarImportacion(provId,productos,resultado);
       }catch(err){toast('Error al leer el Excel: '+err.message,'err');}
@@ -1502,7 +1513,18 @@ function renderProductos(){
   if(!tbody)return;
   if(!lista.length){tbody.innerHTML='<tr class="empty-row"><td colspan="6">No hay productos. Importa una lista de precios.</td></tr>';return;}
   tbody.innerHTML=lista.map(function(p){
-    return '<tr><td style="color:var(--text3);font-size:12px">'+(p.codigo||'-')+'</td><td><strong>'+p.producto+'</strong></td><td>'+(p.categoria||'-')+'</td><td>'+p.proveedor_nombre+'</td><td style="color:var(--accent);font-weight:700">'+fmtPeso(p.precio)+'</td><td><button class="btn btn-danger btn-sm" onclick="eliminarProducto('+p.id+')">X</button></td></tr>';
+    var precioStr=p.precio?'USD '+parseFloat(p.precio).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+    var ivaStr=p.iva?p.iva.toString().replace('IVA_','').replace('IVA ','')+'%':'-';
+    var obsStr=p.observaciones?'<span style="color:var(--red);font-size:11px">'+p.observaciones+'</span>':'-';
+    return '<tr>'+
+      '<td style="color:var(--text3);font-size:12px">'+(p.codigo||'-')+'</td>'+
+      '<td><strong>'+p.producto+'</strong></td>'+
+      '<td style="font-size:12px;color:var(--text2)">'+(p.categoria||'-')+'</td>'+
+      '<td style="font-size:12px;color:var(--text2)">'+ivaStr+'</td>'+
+      '<td style="color:var(--accent);font-weight:700">'+precioStr+'</td>'+
+      '<td style="font-size:11px">'+obsStr+'</td>'+
+      '<td><button class="btn btn-danger btn-sm" onclick="eliminarProducto('+p.id+')">X</button></td>'+
+      '</tr>';
   }).join('');
 }
 
@@ -1528,7 +1550,22 @@ function buscarPrecio(){
   if(!q||q.length<2){el.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Escribi al menos 2 caracteres</div>';return;}
   var res=productosProveedores.filter(function(p){return p.producto.toLowerCase().indexOf(q)>=0||(p.codigo&&p.codigo.toLowerCase().indexOf(q)>=0);});
   if(!res.length){el.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Sin resultados para "'+q+'"</div>';return;}
-  el.innerHTML=res.map(function(p){return '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div style="font-weight:600;font-size:13px">'+p.producto+'</div><div style="font-size:11px;color:var(--text3)">'+p.proveedor_nombre+(p.categoria?' | '+p.categoria:'')+(p.codigo?' | Cod: '+p.codigo:'')+'</div></div><div style="color:var(--accent);font-weight:800;font-size:15px;white-space:nowrap">'+fmtPeso(p.precio)+'</div></div>';}).join('');
+  el.innerHTML=res.map(function(p){
+    var precioStr=p.precio?'USD '+parseFloat(p.precio).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+    var ivaStr=p.iva?(' + IVA '+p.iva.toString().replace('IVA_','').replace('IVA ','')):'' ;
+    var obsStr=p.observaciones?'<span style="color:var(--red)"> ⚠ '+p.observaciones+'</span>':'';
+    return '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px">'+
+      '<div>'+
+        '<div style="font-weight:600;font-size:13px">'+p.producto+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+p.proveedor_nombre+(p.categoria?' | '+p.categoria:'')+(p.codigo?' | Cod: '+p.codigo:'')+'</div>'+
+        (p.observaciones?'<div style="font-size:11px;color:var(--red)">⚠ '+p.observaciones+'</div>':'')+
+      '</div>'+
+      '<div style="text-align:right;white-space:nowrap">'+
+        '<div style="color:var(--accent);font-weight:800;font-size:15px">'+precioStr+'</div>'+
+        (ivaStr?'<div style="font-size:10px;color:var(--text3)">'+ivaStr+'</div>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
 
 // XLSX via CDN (carga dinamica)
