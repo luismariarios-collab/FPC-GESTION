@@ -817,7 +817,7 @@ function toggleTheme(){aplicarTheme(currentTheme==='dark'?'light':'dark');}
 
 // CONFIG
 var CFG_DEFAULT={nombre:'FlorentinoPc',nombreCorto:'FPC',direccion:'Calle 30 N 162',localidad:'Ameghino',telefono:'',email:'',diasAlerta:3,user:'fpc',pass:'0508'};
-var cfg=JSON.parse(localStorage.getItem('fpc_config')||'null')||CFG_DEFAULT;
+var cfg;try{cfg=JSON.parse(localStorage.getItem('fpc_config')||'null')||CFG_DEFAULT;}catch(e){cfg=CFG_DEFAULT;localStorage.removeItem('fpc_config');}
 function saveCfg(){localStorage.setItem('fpc_config',JSON.stringify(cfg));}
 function aplicarConfig(){
   ['loginLogo','sidebarLogo','loadingLogo'].forEach(function(id){var el=document.getElementById(id);if(el)el.src=LOGO_B64;});
@@ -853,7 +853,7 @@ function cargarTodo(){
   ]).then(function(res){
     clientes=res[0]||[];ordenes=res[1]||[];ganancias=res[2]||[];cuentaCorriente=res[3]||[];
     ventas=res[4]||[];proveedores=res[5]||[];productosProveedores=res[6]||[];
-    recordatorios=JSON.parse(localStorage.getItem('fpc_recordatorios')||'[]');
+    try{recordatorios=JSON.parse(localStorage.getItem('fpc_recordatorios')||'[]');}catch(e){recordatorios=[];localStorage.removeItem('fpc_recordatorios');}
     ocultarLoading();renderDashboard();
   }).catch(function(){ocultarLoading();toast('Error al conectar con Supabase','err');});
 }
