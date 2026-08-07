@@ -377,6 +377,7 @@ select option{background:var(--surface)}
       <div class="nav-section-label" style="margin-top:8px">Comercial</div>
       <div class="nav-item" onclick="goSection('ventas')"><span class="nav-icon">&#128722;</span> Ventas</div>
       <div class="nav-item" onclick="goSection('proveedores')"><span class="nav-icon">&#128230;</span> Proveedores</div>
+      <div class="nav-item" onclick="goSection('presupuestos')"><span class="nav-icon">&#128196;</span> Presupuestos</div>
       <div class="nav-section-label" style="margin-top:8px">Otros</div>
       <div class="nav-item" onclick="goSection('recordatorios')"><span class="nav-icon">&#9997;</span> Recordatorios</div>
       <div class="nav-item" onclick="goSection('config')"><span class="nav-icon">&#9965;</span> Configuracion</div>
@@ -738,6 +739,65 @@ select option{background:var(--surface)}
 <div class="modal-overlay" id="modal-estado"><div class="modal" style="width:460px"><div class="modal-header"><span class="modal-title">Actualizar orden</span><button class="modal-close" onclick="cerrarModal('modal-estado')">&#215;</button></div><div class="modal-body"><div id="estado-orden-info" style="margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:10px;font-size:13px"></div><div class="form-group"><label>Estado</label><select id="e-estado"><option value="Ingresado">Ingresado</option><option value="Diagnostico">En diagnostico</option><option value="Presupuestado">Presupuestado</option><option value="Aprobado">Aprobado</option><option value="Reparacion">En reparacion</option><option value="Listo">Listo</option><option value="Entregado">Entregado</option><option value="Cancelado">Cancelado</option></select></div><div class="form-group"><label>Diagnostico / Notas</label><textarea id="e-diagnostico"></textarea></div><div class="form-group"><label>Presupuesto ($)</label><input type="number" id="e-presupuesto"></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-estado')">Cancelar</button><button class="btn btn-primary" onclick="guardarEstado()">Actualizar</button></div></div></div>
 <div class="modal-overlay" id="modal-ganancia"><div class="modal"><div class="modal-header"><span class="modal-title" id="modal-ganancia-title">Registrar ingreso</span><button class="modal-close" onclick="cerrarModal('modal-ganancia')">&#215;</button></div><div class="modal-body"><div class="form-row"><div class="form-group"><label>Fecha *</label><input type="date" id="g-fecha"></div><div class="form-group"><label>Tipo</label><select id="g-tipo-sel"><option value="Reparacion">Reparacion</option><option value="Venta">Venta</option><option value="Servicio">Servicio tecnico</option><option value="Otro">Otro</option></select></div></div><div class="form-group"><label>Concepto *</label><input type="text" id="g-concepto" placeholder="Ej: Reparacion notebook HP..."></div><div class="form-row"><div class="form-group"><label>Costo ($)</label><input type="number" id="g-costo" oninput="calcGanancia()"></div><div class="form-group"><label>Venta / Cobrado ($)</label><input type="number" id="g-venta" oninput="calcGanancia()"></div></div><div class="form-group"><label>Ganancia neta</label><input type="number" id="g-ganancia-calc" readonly style="color:var(--green);font-weight:800;font-size:16px"></div><div class="form-group"><label>Observaciones</label><textarea id="g-obs"></textarea></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-ganancia')">Cancelar</button><button class="btn btn-primary" onclick="guardarGanancia()">Guardar</button></div></div></div>
 <div class="modal-overlay" id="modal-cc"><div class="modal" style="width:460px"><div class="modal-header"><span class="modal-title">Nuevo movimiento</span><button class="modal-close" onclick="cerrarModal('modal-cc')">&#215;</button></div><div class="modal-body"><div class="form-group"><label>Cliente *</label><select id="cc-cliente"><option value="">-- Seleccionar --</option></select></div><div class="form-row"><div class="form-group"><label>Fecha</label><input type="date" id="cc-fecha"></div><div class="form-group"><label>Tipo</label><select id="cc-tipo"><option value="deuda">Deuda (debe)</option><option value="pago">Pago</option><option value="adelanto">Adelanto (a favor)</option></select></div></div><div class="form-group"><label>Concepto *</label><input type="text" id="cc-concepto" placeholder="Ej: Saldo orden #5, Pago parcial..."></div><div class="form-group"><label>Monto ($) *</label><input type="number" id="cc-monto" placeholder="0.00"></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="cerrarModal('modal-cc')">Cancelar</button><button class="btn btn-primary" onclick="guardarCC()">Guardar</button></div></div></div>
+<!-- SECCION PRESUPUESTOS -->
+<div class="section" id="section-presupuestos">
+  <div class="section-header">
+    <h2 class="section-title">Presupuestos</h2>
+    <button class="btn btn-primary" onclick="nuevoPresupuesto()">+ Nuevo presupuesto</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Creado</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Total USD</th><th>Acciones</th></tr></thead>
+      <tbody id="presup-body"><tr class="empty-row"><td colspan="6">No hay presupuestos guardados</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL PRESUPUESTO -->
+<div class="modal-overlay" id="modal-presupuesto">
+  <div class="modal" style="width:680px">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-presup-title">Nuevo presupuesto</span>
+      <button class="modal-close" onclick="cerrarModal('modal-presupuesto')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Fecha *</label><input type="date" id="pres-fecha"></div>
+        <div class="form-group"><label>Cliente</label><select id="pres-cliente"><option value="">-- Sin cliente --</option></select></div>
+      </div>
+      <div class="form-group"><label>Titulo / Descripcion *</label><input type="text" id="pres-titulo" placeholder="Ej: Presupuesto notebook HP..."></div>
+      <div class="form-group">
+        <label>Buscar en lista de precios</label>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:8px">
+          <input type="text" id="pres-buscar-prod" placeholder="Escribi para buscar..." oninput="buscarProdPresup()">
+          <select id="pres-fab-sel" onchange="buscarProdPresup()" style="min-width:150px"><option value="">Todos los fabricantes</option></select>
+        </div>
+        <div id="pres-resultados-prod" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:12px"><div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Escribi para buscar o selecciona un fabricante</div></div>
+      </div>
+      <div class="form-group">
+        <label>Agregar item manual</label>
+        <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:end">
+          <input type="text" id="pres-item-desc" placeholder="Descripcion del producto">
+          <input type="number" id="pres-item-precio" placeholder="USD" style="width:110px" min="0" step="0.01">
+          <input type="number" id="pres-item-cant" placeholder="Cant." style="width:65px" min="1" value="1">
+          <button class="btn btn-success" onclick="agregarItemPresup()">+ Agregar</button>
+        </div>
+      </div>
+      <div id="pres-items-lista" style="margin:12px 0"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface2);border-radius:10px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--text2)">TOTAL ESTIMADO (sin IVA)</div>
+        <div id="pres-total-modal" style="font-size:20px;font-weight:900;color:var(--accent)">USD 0,00</div>
+      </div>
+      <div class="form-group"><label>Observaciones / Condiciones</label><textarea id="pres-obs" placeholder="Validez, condiciones de pago..." style="min-height:60px"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-presupuesto')">Cancelar</button>
+      <button class="btn btn-print" onclick="imprimirPresupuestoModal()">&#128424; Imprimir</button>
+      <button class="btn btn-primary" onclick="guardarPresupuesto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL VENTA -->
 <div class="modal-overlay" id="modal-venta"><div class="modal" style="width:620px"><div class="modal-header"><span class="modal-title" id="modal-venta-title">Nueva venta</span><button class="modal-close" onclick="cerrarModal('modal-venta')">&#215;</button></div><div class="modal-body">
   <div class="form-row">
@@ -835,9 +895,9 @@ function toggleMenu(){var s=document.getElementById('sidebar'),o=document.getEle
 function cerrarMenu(){var s=document.getElementById('sidebar'),o=document.getElementById('sidebarOverlay');if(s)s.classList.remove('open');if(o)o.classList.remove('open');}
 var TITULOS={dashboard:'Dashboard',clientes:'Clientes',ordenes:'Ordenes',ganancias:'Ganancias',cuentacorriente:'Cuenta Corriente',ventas:'Ventas',proveedores:'Proveedores',recordatorios:'Recordatorios',config:'Configuracion'};
 var sTitles=TITULOS;
-function goSection(sec){document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});var secEl=document.getElementById('section-'+sec);if(secEl)secEl.classList.add('active');var order=['dashboard','clientes','ordenes','ganancias','cuentacorriente','ventas','proveedores','recordatorios','config'];var idx=order.indexOf(sec);var nis=document.querySelectorAll('.nav-item');if(idx>=0&&nis[idx])nis[idx].classList.add('active');var tt=document.getElementById('topbarTitle');if(tt)tt.textContent=TITULOS[sec]||sec;cerrarMenu();if(sec==='clientes')renderClientes();if(sec==='ordenes')renderOrdenes();if(sec==='ganancias'){renderGanancias();renderGrafico();}if(sec==='dashboard')renderDashboard();if(sec==='cuentacorriente')renderCuentaCorriente();if(sec==='ventas')renderVentas();if(sec==='proveedores'){renderProveedores();if(provTabActual==='productos')renderProductos();}if(sec==='recordatorios')renderRecordatorios();if(sec==='config')renderConfig();}
+function goSection(sec){document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});var secEl=document.getElementById('section-'+sec);if(secEl)secEl.classList.add('active');var order=['dashboard','clientes','ordenes','ganancias','cuentacorriente','ventas','proveedores','presupuestos','recordatorios','config'];var idx=order.indexOf(sec);var nis=document.querySelectorAll('.nav-item');if(idx>=0&&nis[idx])nis[idx].classList.add('active');var tt=document.getElementById('topbarTitle');if(tt)tt.textContent=TITULOS[sec]||sec;cerrarMenu();if(sec==='clientes')renderClientes();if(sec==='ordenes')renderOrdenes();if(sec==='ganancias'){renderGanancias();renderGrafico();}if(sec==='dashboard')renderDashboard();if(sec==='cuentacorriente')renderCuentaCorriente();if(sec==='ventas')renderVentas();if(sec==='proveedores'){renderProveedores();if(provTabActual==='productos')renderProductos();}if(sec==='presupuestos')renderPresupuestos();if(sec==='recordatorios')renderRecordatorios();if(sec==='config')renderConfig();}
 function cerrarModal(id){var el=document.getElementById(id);if(el)el.classList.remove('open');editId=null;recEditId=null;}
-function abrirModal(id){var el=document.getElementById(id);if(el)el.classList.add('open');}
+function abrirModal(id){console.log('abrirModal llamado con id:',id);var el=document.getElementById(id);if(el){el.classList.add('open');console.log('open agregado OK');}else{console.log('ELEMENTO NO ENCONTRADO:',id);}}
 function estadoBadge(e){var m={Ingresado:'badge-ingresado',Diagnostico:'badge-diagnostico',Presupuestado:'badge-presupuestado',Aprobado:'badge-aprobado',Reparacion:'badge-reparacion',Listo:'badge-listo',Entregado:'badge-entregado',Cancelado:'badge-cancelado'};var l={Diagnostico:'En diag.',Reparacion:'En rep.'};return '<span class="badge '+(m[e]||'badge-ingresado')+'">'+(l[e]||e)+'</span>';}
 function buscarGlobal(){var q=document.getElementById('buscarGlobal').value.toLowerCase().trim();var res=document.getElementById('searchResults');if(!q||q.length<2){res.classList.remove('show');return;}var items=[];clientes.filter(function(c){return c.nombre.toLowerCase().indexOf(q)>=0||(c.tel&&c.tel.indexOf(q)>=0)||(c.dni&&c.dni.indexOf(q)>=0);}).slice(0,4).forEach(function(c){items.push({t:'Cliente',m:c.nombre,s:'Tel: '+c.tel,a:"goSection('clientes')"});});ordenes.filter(function(o){return (o.num+'').indexOf(q)>=0||o.cliente_nombre.toLowerCase().indexOf(q)>=0||o.equipo.toLowerCase().indexOf(q)>=0;}).slice(0,4).forEach(function(o){items.push({t:'Orden #'+o.num,m:o.cliente_nombre+' - '+o.equipo,s:o.estado,a:"goSection('ordenes')"});});if(!items.length){res.innerHTML='<div class="search-empty">Sin resultados</div>';res.classList.add('show');return;}res.innerHTML=items.map(function(i){return '<div class="search-result-item" onclick="'+i.a+';cerrarBuscador()"><div class="search-result-type">'+i.t+'</div><div class="search-result-main">'+i.m+'</div><div class="search-result-sub">'+i.s+'</div></div>';}).join('');res.classList.add('show');}
 function cerrarBuscador(){var r=document.getElementById('searchResults');if(r)r.classList.remove('show');var b=document.getElementById('buscarGlobal');if(b)b.value='';}
@@ -919,6 +979,257 @@ function importarJSON(input){var file=input.files[0];if(!file)return;var reader=
 function borrarTodo(){if(!confirm('ATENCION: Se borraran TODOS los datos.'))return;var conf=prompt('Escribi BORRAR para confirmar:');if(conf!=='BORRAR'){toast('Cancelado','err');return;}mostrarLoading('Borrando...');Promise.all(['ganancias','cuenta_corriente','ventas','ordenes','clientes','productos_proveedores','proveedores'].map(function(t){return supaFetch(t+'?id=gt.0',{method:'DELETE'});})).then(function(){clientes=[];ordenes=[];ganancias=[];cuentaCorriente=[];ventas=[];proveedores=[];productosProveedores=[];ocultarLoading();renderConfig();renderDashboard();toast('Datos eliminados','err');}).catch(function(){ocultarLoading();toast('Error','err');});}
 function renderDashboard(){var h=hoy(),ma=h.substring(0,7),ea=['Ingresado','Diagnostico','Presupuestado','Aprobado','Reparacion','Listo'],da=cfg.diasAlerta||3;var hora=new Date().getHours(),sal=hora<12?'Buenos dias':hora<18?'Buenas tardes':'Buenas noches';var sn=document.getElementById('dash-saludo-nombre');if(sn)sn.textContent=sal+', '+cfg.nombreCorto+'!';var fd=new Date();var dias=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];var sf=document.getElementById('dash-fecha');if(sf)sf.textContent=dias[fd.getDay()]+', '+fd.getDate()+' de '+MESES[fd.getMonth()]+' '+fd.getFullYear();var dc=document.getElementById('d-clientes');if(dc)dc.textContent=clientes.length;var act=ordenes.filter(function(o){return ea.indexOf(o.estado)>=0;});var da2=document.getElementById('d-activas');if(da2)da2.textContent=act.length;var dal=document.getElementById('d-alertas');if(dal)dal.textContent=act.filter(function(o){return diasDesde(o.ultimo_movimiento||o.fecha)>=da;}).length;var das=document.getElementById('d-alertas-sub');if(das)das.textContent='+'+da+'d sin movimiento';var dl=document.getElementById('c-listas');if(dl)dl.textContent=ordenes.filter(function(o){return o.estado==='Listo';}).length;var dm=document.getElementById('c-movidas');if(dm)dm.textContent=ordenes.filter(function(o){return(o.ultimo_movimiento||o.fecha)===h;}).length;var ganMes=ganancias.filter(function(g){return g.fecha&&g.fecha.startsWith(ma);}).reduce(function(a,g){return a+(parseFloat(g.venta)||0)-(parseFloat(g.costo)||0);},0);var dmes=document.getElementById('d-mes');if(dmes)dmes.textContent=fmtPeso(ganMes);var dml=document.getElementById('d-mes-label');if(dml)dml.textContent=MESES[parseInt(ma.split('-')[1])-1]+' '+ma.split('-')[0];var fh=ganancias.filter(function(g){return g.fecha===h;}).reduce(function(a,g){return a+(parseFloat(g.venta)||0);},0);var gh=ganancias.filter(function(g){return g.fecha===h;}).reduce(function(a,g){return a+(parseFloat(g.venta)||0)-(parseFloat(g.costo)||0);},0);var cf=document.getElementById('c-facturado');if(cf)cf.textContent=fmtPeso(fh);var cgh=document.getElementById('c-ganancia-hoy');if(cgh){cgh.textContent=fmtPeso(gh);cgh.style.color=gh>=0?'var(--green)':'var(--red)';}var tdCC=clientes.reduce(function(a,c){var s=getSaldoCliente(c.id);return a+(s.saldo<0?Math.abs(s.saldo):0);},0);var ddt=document.getElementById('d-deuda-total');if(ddt)ddt.textContent=fmtPeso(tdCC);var spDatos=[];for(var i=5;i>=0;i--){var dm2=new Date(new Date().getFullYear(),new Date().getMonth()-i,1),km=dm2.getFullYear()+'-'+('0'+(dm2.getMonth()+1)).slice(-2);spDatos.push(ganancias.filter(function(g){return g.fecha&&g.fecha.startsWith(km);}).reduce(function(a,g){return a+(parseFloat(g.venta)||0)-(parseFloat(g.costo)||0);},0));}setTimeout(function(){dibujarSparkline('spark-mes',spDatos,'rgb(0,208,132)');},100);renderRecordatoriosDash();var tb=document.getElementById('dash-ordenes-body');if(!tb)return;var rec=ordenes.slice(0,6);if(!rec.length){tb.innerHTML='<tr class="empty-row"><td colspan="5">No hay ordenes aun</td></tr>';return;}tb.innerHTML=rec.map(function(o){var d=diasDesde(o.ultimo_movimiento||o.fecha),act2=ea.indexOf(o.estado)>=0,al=act2&&d>=da;return '<tr><td><strong>#'+o.num+'</strong>'+(al?'<span class="badge badge-alerta">!</span>':'')+'</td><td>'+o.cliente_nombre+'</td><td>'+o.equipo+'</td><td>'+estadoBadge(o.estado)+'</td><td>'+(act2?(al?'<span style="color:var(--red);font-weight:700">'+d+'d</span>':'<span style="color:var(--text3)">'+d+'d</span>'):'-')+'</td></tr>';}).join('');}
 function cargarXLSX(cb){if(window.XLSX){cb();return;}var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=cb;document.head.appendChild(s);}
+
+// PRESUPUESTOS
+var presupuestosGuardados=JSON.parse(localStorage.getItem('fpc_presupuestos')||'[]');
+var presupEditId=null;
+var presupItemsModal=[];
+
+function savePresupuestos(){localStorage.setItem('fpc_presupuestos',JSON.stringify(presupuestosGuardados));}
+
+function nuevoPresupuesto(){
+  presupEditId=null;presupItemsModal=[];
+  var t=document.getElementById('modal-presup-title');if(t)t.textContent='Nuevo presupuesto';
+  var fd=document.getElementById('pres-fecha');if(fd)fd.value=hoy();
+  var ft=document.getElementById('pres-titulo');if(ft)ft.value='';
+  var fo=document.getElementById('pres-obs');if(fo)fo.value='';
+  var sel=document.getElementById('pres-cliente');
+  if(sel){sel.innerHTML='<option value="">-- Sin cliente --</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+c.nombre+'</option>';}).join('');}
+  var bq=document.getElementById('pres-buscar-prod');if(bq)bq.value='';
+  var fabs=[...new Set(productosProveedores.map(function(p){return p.categoria;}).filter(Boolean))].sort();
+  var sf=document.getElementById('pres-fab-sel');
+  if(sf)sf.innerHTML='<option value="">Todos los fabricantes</option>'+fabs.map(function(f){return '<option value="'+f+'">'+f+'</option>';}).join('');
+  var rd=document.getElementById('pres-resultados-prod');if(rd)rd.innerHTML='<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Escribi para buscar o selecciona un fabricante</div>';
+  document.getElementById('pres-item-desc').value='';
+  document.getElementById('pres-item-precio').value='';
+  document.getElementById('pres-item-cant').value='1';
+  renderItemsPresupModal();
+  abrirModal('modal-presupuesto');
+}
+
+function buscarProdPresup(){
+  var q=(document.getElementById('pres-buscar-prod')||{}).value||'';q=q.toLowerCase().trim();
+  var fab=(document.getElementById('pres-fab-sel')||{}).value||'';fab=fab.toLowerCase();
+  var el=document.getElementById('pres-resultados-prod');if(!el)return;
+  var lista=productosProveedores.filter(function(p){
+    if(fab&&(!p.categoria||p.categoria.toLowerCase()!==fab))return false;
+    if(!q&&!fab)return false;
+    if(q&&p.producto.toLowerCase().indexOf(q)<0&&(!p.codigo||p.codigo.toLowerCase().indexOf(q)<0))return false;
+    return true;
+  }).slice(0,40);
+  if(!lista.length){el.innerHTML='<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">'+(q||fab?'Sin resultados':'Escribi para buscar o selecciona un fabricante')+'</div>';return;}
+  el.innerHTML=lista.map(function(p){
+    var iv=p.iva?p.iva.toString().replace('IVA_','').replace('IVA ','').trim():'';
+    return '<div style="padding:9px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.producto+'</div>'
+      +'<div style="font-size:11px;color:var(--text3)">'+(p.categoria||'')+( p.codigo?' | '+p.codigo:'')+' | '+p.proveedor_nombre+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="color:var(--accent);font-weight:800">'+(p.precio?fmtUSD(p.precio):'-')+'</div>'
+      +(iv?'<div style="font-size:10px;color:var(--text3)">IVA '+iv+'%</div>':'')
+      +'<button class="btn btn-success btn-sm" style="margin-top:3px" data-pid="'+p.id+'" onclick="addProdAPresup(this)">+ Agregar</button>'
+      +'</div></div>';
+  }).join('')+(lista.length===40?'<div style="padding:8px;text-align:center;font-size:12px;color:var(--text3)">Refina la busqueda para ver mas</div>':'');
+}
+
+function addProdAPresup(btn){
+  var id=parseInt(btn.getAttribute('data-pid'));
+  var p=productosProveedores.find(function(x){return x.id===id;});if(!p)return;
+  var idx=presupItemsModal.findIndex(function(x){return x.id===p.id;});
+  if(idx>=0){presupItemsModal[idx].cant++;}
+  else{presupItemsModal.push({id:p.id,desc:p.producto,precio:parseFloat(p.precio)||0,iva:p.iva||'',cant:1});}
+  renderItemsPresupModal();
+  toast(p.producto.substring(0,30)+' agregado','ok');
+}
+
+function agregarItemPresup(){
+  var d=document.getElementById('pres-item-desc').value.trim();
+  var p=parseFloat(document.getElementById('pres-item-precio').value)||0;
+  var c2=parseInt(document.getElementById('pres-item-cant').value)||1;
+  if(!d){toast('Ingresa la descripcion','err');return;}
+  presupItemsModal.push({id:Date.now(),desc:d,precio:p,iva:'',cant:c2});
+  document.getElementById('pres-item-desc').value='';
+  document.getElementById('pres-item-precio').value='';
+  document.getElementById('pres-item-cant').value='1';
+  renderItemsPresupModal();
+}
+
+function cambiarCantItemPresup(idx,dir){presupItemsModal[idx].cant+=dir;if(presupItemsModal[idx].cant<=0)presupItemsModal.splice(idx,1);renderItemsPresupModal();}
+function quitarItemPresup(idx){presupItemsModal.splice(idx,1);renderItemsPresupModal();}
+
+function renderItemsPresupModal(){
+  var el=document.getElementById('pres-items-lista');if(!el)return;
+  var total=presupItemsModal.reduce(function(a,i){return a+i.precio*i.cant;},0);
+  var pt=document.getElementById('pres-total-modal');if(pt)pt.textContent=fmtUSD(total);
+  if(!presupItemsModal.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center">Sin items todavia</div>';return;}
+  el.innerHTML=presupItemsModal.map(function(item,idx){
+    var iv=item.iva?item.iva.toString().replace('IVA_','').replace('IVA ','').trim():'';
+    return '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;font-size:13px">'
+      +'<div><div style="font-weight:600">'+item.desc+'</div>'+(iv?'<div style="font-size:11px;color:var(--text3)">IVA '+iv+'%</div>':'')+'</div>'
+      +'<div style="display:flex;align-items:center;gap:5px"><button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="cambiarCantItemPresup('+idx+',-1)">-</button><span style="min-width:22px;text-align:center;font-weight:700">'+item.cant+'</span><button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="cambiarCantItemPresup('+idx+',1)">+</button></div>'
+      +'<div style="color:var(--accent);font-weight:700;white-space:nowrap">'+fmtUSD(item.precio*item.cant)+'</div>'
+      +'<button class="btn btn-danger btn-sm" onclick="quitarItemPresup('+idx+')">X</button>'
+      +'</div>';
+  }).join('');
+}
+
+function guardarPresupuesto(){
+  var titulo=document.getElementById('pres-titulo').value.trim();
+  var fecha=document.getElementById('pres-fecha').value;
+  if(!fecha||!titulo){toast('Fecha y titulo son obligatorios','err');return;}
+  if(!presupItemsModal.length){toast('Agrega al menos un item','err');return;}
+  var cid=document.getElementById('pres-cliente').value;
+  var cli=cid?clientes.find(function(c){return c.id===parseInt(cid);}):null;
+  var total=presupItemsModal.reduce(function(a,i){return a+i.precio*i.cant;},0);
+  var d={
+    id:presupEditId||Date.now(),
+    fecha:fecha,
+    titulo:titulo,
+    cliente_id:cid?parseInt(cid):null,
+    cliente_nombre:cli?cli.nombre:'',
+    items:JSON.parse(JSON.stringify(presupItemsModal)),
+    total:total,
+    obs:document.getElementById('pres-obs').value.trim()
+  };
+  if(presupEditId){var idx=presupuestosGuardados.findIndex(function(x){return x.id===presupEditId;});presupuestosGuardados[idx]=d;}
+  else{presupuestosGuardados.unshift(d);}
+  savePresupuestos();
+  cerrarModal('modal-presupuesto');
+  renderPresupuestos();
+  toast('Presupuesto guardado','ok');
+}
+
+function editarPresupuesto(id){
+  presupEditId=id;
+  var p=presupuestosGuardados.find(function(x){return x.id===id;});if(!p)return;
+  var t=document.getElementById('modal-presup-title');if(t)t.textContent='Editar presupuesto';
+  var fd=document.getElementById('pres-fecha');if(fd)fd.value=p.fecha;
+  var ft=document.getElementById('pres-titulo');if(ft)ft.value=p.titulo;
+  var fo=document.getElementById('pres-obs');if(fo)fo.value=p.obs||'';
+  var sel=document.getElementById('pres-cliente');
+  if(sel){sel.innerHTML='<option value="">-- Sin cliente --</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+c.nombre+'</option>';}).join('');if(p.cliente_id)sel.value=p.cliente_id;}
+  presupItemsModal=JSON.parse(JSON.stringify(p.items));
+  var fabs=[...new Set(productosProveedores.map(function(x){return x.categoria;}).filter(Boolean))].sort();
+  var sf=document.getElementById('pres-fab-sel');
+  if(sf)sf.innerHTML='<option value="">Todos los fabricantes</option>'+fabs.map(function(f){return '<option value="'+f+'">'+f+'</option>';}).join('');
+  var bq=document.getElementById('pres-buscar-prod');if(bq)bq.value='';
+  var rd=document.getElementById('pres-resultados-prod');if(rd)rd.innerHTML='<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Escribi para buscar o selecciona un fabricante</div>';
+  renderItemsPresupModal();
+  abrirModal('modal-presupuesto');
+}
+
+function eliminarPresupuesto(id){
+  if(!confirm('Eliminar este presupuesto?'))return;
+  presupuestosGuardados=presupuestosGuardados.filter(function(x){return x.id!==id;});
+  savePresupuestos();renderPresupuestos();toast('Eliminado','ok');
+}
+
+function imprimirPresupuestoModal(){
+  if(!presupItemsModal.length){toast('Agrega al menos un item','err');return;}
+  var fecha=document.getElementById('pres-fecha').value;
+  var titulo=document.getElementById('pres-titulo').value;
+  var cid=document.getElementById('pres-cliente').value;
+  var cli=cid?clientes.find(function(c){return c.id===parseInt(cid);}):null;
+  var obs=document.getElementById('pres-obs').value;
+  var total=presupItemsModal.reduce(function(a,i){return a+i.precio*i.cant;},0);
+  imprimirPresupuestoHTML(titulo,fecha,cli,presupItemsModal,total,obs);
+}
+
+function imprimirPresupuestoGuardado(id){
+  var p=presupuestosGuardados.find(function(x){return x.id===id;});if(!p)return;
+  var cli=p.cliente_id?clientes.find(function(c){return c.id===p.cliente_id;}):null;
+  imprimirPresupuestoHTML(p.titulo,p.fecha,cli,p.items,p.total,p.obs);
+}
+
+function imprimirPresupuestoHTML(titulo,fecha,cli,items,total,obs){
+  var dir=[cfg.direccion,cfg.localidad].filter(Boolean).join(' - ');
+  var num=Date.now().toString().slice(-6);
+  var iH=items.map(function(i){
+    var iv=i.iva?i.iva.toString().replace('IVA_','').replace('IVA ','').trim():'';
+    return '<tr><td style="padding:9px 12px;border:1px solid #ddd;font-size:13px">'+i.desc+'</td>'
+      +'<td style="padding:9px 12px;border:1px solid #ddd;text-align:center;font-size:13px">'+i.cant+'</td>'
+      +'<td style="padding:9px 12px;border:1px solid #ddd;text-align:right;font-size:13px">'+fmtUSD(i.precio)+'</td>'
+      +'<td style="padding:9px 12px;border:1px solid #ddd;text-align:right;font-weight:700;font-size:13px">'+fmtUSD(i.precio*i.cant)+'</td>'
+      +'<td style="padding:9px 12px;border:1px solid #ddd;font-size:11px;color:#888">'+(iv?'IVA '+iv+'%':'')+'</td>'
+      +'</tr>';
+  }).join('');
+  var html='<div style="font-family:Arial,sans-serif;max-width:620px;width:100%;margin:0 auto;padding:28px;box-sizing:border-box">'
+    // ENCABEZADO
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #b8902f">'
+    +'<div>'
+    +'<div style="font-size:28px;font-weight:900;letter-spacing:3px;color:#1a1408">'+(cfg.nombre||'FlorentinoPc')+'</div>'
+    +(dir?'<div style="font-size:12px;color:#666;margin-top:3px">'+dir+'</div>':'')
+    +(cfg.telefono?'<div style="font-size:12px;color:#666">Tel: '+cfg.telefono+'</div>':'')
+    +(cfg.email?'<div style="font-size:12px;color:#666">'+cfg.email+'</div>':'')
+    +'</div>'
+    +'<div style="text-align:right">'
+    +'<div style="font-size:26px;font-weight:900;color:#b8902f;letter-spacing:2px">PRESUPUESTO</div>'
+    +'<div style="font-size:13px;color:#666;margin-top:4px">N&deg; '+num+'</div>'
+    +'<div style="font-size:13px;color:#666">Fecha: '+fecha+'</div>'
+    +'<div style="font-size:11px;color:#999;margin-top:2px">Precios en USD</div>'
+    +'</div>'
+    +'</div>'
+    // DATOS CLIENTE
+    +(cli?'<div style="margin-bottom:18px;padding:12px 16px;background:#f8f6f0;border-radius:8px;border-left:4px solid #b8902f">'
+    +'<div style="font-size:10px;text-transform:uppercase;color:#999;letter-spacing:1px;margin-bottom:4px;font-weight:700">Cliente</div>'
+    +'<div style="font-weight:700;font-size:15px">'+cli.nombre+'</div>'
+    +(cli.dni?'<div style="font-size:12px;color:#666">DNI/CUIT: '+cli.dni+'</div>':'')
+    +(cli.tel?'<div style="font-size:12px;color:#666">Tel: '+cli.tel+'</div>':'')
+    +'</div>':'')
+    // TITULO
+    +'<div style="margin-bottom:16px;font-size:15px;font-weight:700;color:#333">'+titulo+'</div>'
+    // TABLA
+    +'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'
+    +'<thead><tr style="background:#b8902f;color:#fff">'
+    +'<th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:700">Descripcion</th>'
+    +'<th style="padding:10px 12px;text-align:center;font-size:12px;width:60px">Cant.</th>'
+    +'<th style="padding:10px 12px;text-align:right;font-size:12px;width:110px">P.Unit.</th>'
+    +'<th style="padding:10px 12px;text-align:right;font-size:12px;width:110px">Subtotal</th>'
+    +'<th style="padding:10px 12px;font-size:12px;width:70px">IVA</th>'
+    +'</tr></thead><tbody>'+iH+'</tbody></table>'
+    // TOTAL
+    +'<div style="display:flex;justify-content:flex-end;margin-bottom:20px">'
+    +'<div style="background:#b8902f;color:#fff;padding:14px 28px;border-radius:8px;text-align:right;min-width:200px">'
+    +'<div style="font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:1px">Total estimado (sin IVA)</div>'
+    +'<div style="font-size:26px;font-weight:900;margin-top:4px">'+fmtUSD(total)+'</div>'
+    +'</div>'
+    +'</div>'
+    // OBSERVACIONES
+    +(obs?'<div style="margin-bottom:20px;padding:12px 16px;background:#f8f6f0;border-radius:8px;font-size:13px;color:#555">'
+    +'<div style="font-weight:700;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999">Observaciones</div>'
+    +obs+'</div>':'')
+    // VALIDEZ
+    +'<div style="margin-bottom:24px;font-size:12px;color:#999;font-style:italic">* Presupuesto valido por 48hs sujeto a disponibilidad de stock. Precios en USD, sujetos a cotizacion del dia.</div>'
+    // FIRMAS
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:32px">'
+    +'<div style="text-align:center"><div style="border-top:1px solid #999;padding-top:8px;font-size:12px;color:#666">Firma y aclaracion del cliente</div></div>'
+    +'<div style="text-align:center"><div style="border-top:1px solid #999;padding-top:8px;font-size:12px;color:#666">Firma - '+(cfg.nombre||'FlorentinoPc')+'</div></div>'
+    +'</div>'
+    +'<div style="margin-top:20px;text-align:center;font-size:11px;color:#bbb">Gracias por confiar en nosotros</div>'
+    +'</div>';
+  var tp=document.getElementById('ticketPrint');
+  tp.innerHTML=html;tp.style.display='block';window.print();tp.style.display='none';
+}
+
+function renderPresupuestos(){
+  var tb=document.getElementById('presup-body');if(!tb)return;
+  presupuestosGuardados=JSON.parse(localStorage.getItem('fpc_presupuestos')||'[]');
+  if(!presupuestosGuardados.length){tb.innerHTML='<tr class="empty-row"><td colspan="6">No hay presupuestos guardados</td></tr>';return;}
+  tb.innerHTML=presupuestosGuardados.map(function(p){
+    return '<tr>'
+      +'<td style="color:var(--text3);font-size:12px">'+new Date(p.id).toLocaleDateString('es-AR')+'</td>'
+      +'<td>'+p.fecha+'</td>'
+      +'<td>'+(p.cliente_nombre||'<span style="color:var(--text3)">Sin cliente</span>')+'</td>'
+      +'<td style="color:var(--text2)">'+p.items.length+' item(s)</td>'
+      +'<td style="color:var(--accent);font-weight:700">'+fmtUSD(p.total)+'</td>'
+      +'<td style="white-space:nowrap">'
+      +'<button class="btn btn-print btn-sm" onclick="imprimirPresupuestoGuardado('+p.id+')" title="Imprimir">&#128424;</button> '
+      +'<button class="btn btn-ghost btn-sm" onclick="editarPresupuesto('+p.id+')" title="Editar">&#9999;</button> '
+      +'<button class="btn btn-danger btn-sm" onclick="eliminarPresupuesto('+p.id+')" title="Eliminar">X</button>'
+      +'</td></tr>';
+  }).join('');
+}
+
 var _ie=importarExcel;importarExcel=function(){cargarXLSX(_ie);};
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){regs.forEach(function(r){r.unregister();});});window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js');});}
 aplicarConfig();
