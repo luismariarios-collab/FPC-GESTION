@@ -663,11 +663,13 @@ select option{background:var(--surface)}
   <div class="form-row"><div class="form-group"><label>Fecha *</label><input type="date" id="pres-fecha"></div><div class="form-group"><label>Cliente</label><select id="pres-cliente"><option value="">-- Sin cliente --</option></select></div></div>
   <div class="form-group"><label>Titulo / Descripcion *</label><input type="text" id="pres-titulo" placeholder="Ej: Presupuesto notebook HP..."></div>
   <div class="form-group"><label>Agregar item</label>
-    <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:end">
+    <div style="display:grid;grid-template-columns:1fr auto auto auto auto auto;gap:6px;align-items:end">
       <input type="text" id="pres-item-desc" placeholder="Descripcion del producto/servicio">
-      <input type="number" id="pres-item-precio" placeholder="USD" style="width:110px" min="0" step="0.01">
-      <input type="number" id="pres-item-cant" placeholder="Cant." style="width:65px" min="1" value="1">
-      <button class="btn btn-success" onclick="agregarItemPresup()">+ Agregar</button>
+      <input type="number" id="pres-item-precio" placeholder="Precio" style="width:90px" min="0" step="0.01">
+          <select id="pres-item-moneda" style="width:70px"><option value="USD">USD</option><option value="ARS">$ARS</option></select>
+          <select id="pres-item-iva" style="width:115px"><option value="siniva">Sin IVA</option><option value="10.5">IVA 10.5%</option><option value="21">IVA 21%</option><option value="incluido">IVA incl.</option></select>
+          <input type="number" id="pres-item-cant" placeholder="Cant." style="width:58px" min="1" value="1">
+          <button class="btn btn-success" onclick="agregarItemPresup()">+ Agregar</button>
     </div>
   </div>
   <div id="pres-items-lista" style="margin:12px 0"></div>
@@ -904,9 +906,14 @@ function nuevoPresupuesto(){
 function agregarItemPresup(){
   var d=document.getElementById('pres-item-desc').value.trim();
   var p=parseFloat(document.getElementById('pres-item-precio').value)||0;
-  var c=parseInt(document.getElementById('pres-item-cant').value)||1;
+  var moneda=document.getElementById('pres-item-moneda').value;
+  var iva=document.getElementById('pres-item-iva').value;
+  var cant=parseInt(document.getElementById('pres-item-cant').value)||1;
   if(!d){toast('Ingresa la descripcion','err');return;}
-  presupItemsModal.push({id:Date.now(),desc:d,precio:p,cant:c});
+  var precioFinal=p;
+  if(iva==='10.5')precioFinal=parseFloat((p*1.105).toFixed(2));
+  else if(iva==='21')precioFinal=parseFloat((p*1.21).toFixed(2));
+  presupItemsModal.push({id:Date.now(),desc:d,precioBase:p,precio:precioFinal,moneda:moneda,iva:iva,cant:cant});
   document.getElementById('pres-item-desc').value='';
   document.getElementById('pres-item-precio').value='';
   document.getElementById('pres-item-cant').value='1';
@@ -916,16 +923,19 @@ function agregarItemPresup(){
 function cambiarCantItemPresup(idx,dir){presupItemsModal[idx].cant+=dir;if(presupItemsModal[idx].cant<=0)presupItemsModal.splice(idx,1);renderItemsPresupModal();}
 function quitarItemPresup(idx){presupItemsModal.splice(idx,1);renderItemsPresupModal();}
 
+function fmtItem(item){var v=item.precio*item.cant;return (item.moneda==='ARS')?fmtPeso(v):fmtUSD(v);}
+function labelIVA(iv){if(iv==='siniva')return 'Sin IVA';if(iv==='10.5')return 'IVA 10.5%';if(iv==='21')return 'IVA 21%';if(iv==='incluido')return 'IVA incl.';return 'Sin IVA';}
+function calcTotalPresup(){var usd=0,ars=0;presupItemsModal.forEach(function(i){var v=i.precio*i.cant;if(i.moneda==='ARS')ars+=v;else usd+=v;});var p=[];if(usd>0)p.push(fmtUSD(usd));if(ars>0)p.push(fmtPeso(ars));return p.join(' + ')||fmtUSD(0);}
+function calcTotalImpresion(items){var usd=0,ars=0;items.forEach(function(i){var v=(i.precio||0)*(i.cant||1);if(i.moneda==='ARS')ars+=v;else usd+=v;});var p=[];if(usd>0)p.push(fmtUSD(usd));if(ars>0)p.push(fmtPeso(ars));return p.join(' + ')||fmtUSD(0);}
 function renderItemsPresupModal(){
   var el=document.getElementById('pres-items-lista');
-  var total=presupItemsModal.reduce(function(a,i){return a+i.precio*i.cant;},0);
-  document.getElementById('pres-total-modal').textContent=fmtUSD(total);
+  document.getElementById('pres-total-modal').textContent=calcTotalPresup();
   if(!presupItemsModal.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center">Sin items todavia</div>';return;}
   el.innerHTML=presupItemsModal.map(function(item,idx){
     return '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;font-size:13px">'
-      +'<div style="font-weight:600">'+item.desc+'</div>'
+      +'<div><div style="font-weight:600">'+item.desc+'</div><div style="font-size:11px;color:var(--text3)">'+labelIVA(item.iva||'siniva')+(item.moneda||'USD')+' x'+item.cant+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:5px"><button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="cambiarCantItemPresup('+idx+',-1)">-</button><span style="min-width:22px;text-align:center;font-weight:700">'+item.cant+'</span><button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="cambiarCantItemPresup('+idx+',1)">+</button></div>'
-      +'<div style="color:var(--accent);font-weight:700;white-space:nowrap">'+fmtUSD(item.precio*item.cant)+'</div>'
+      +'<div style="color:var(--accent);font-weight:700;white-space:nowrap">'+fmtItem(item)+'</div>'
       +'<button class="btn btn-danger btn-sm" onclick="quitarItemPresup('+idx+')">X</button>'
       +'</div>';
   }).join('');
@@ -938,7 +948,8 @@ function guardarPresupuesto(){
   if(!presupItemsModal.length){toast('Agrega al menos un item','err');return;}
   var cid=document.getElementById('pres-cliente').value;
   var cli=cid?clientes.find(function(c){return c.id===parseInt(cid);}):null;
-  var total=presupItemsModal.reduce(function(a,i){return a+i.precio*i.cant;},0);
+  var totalStr=calcTotalPresup();
+  var total=presupItemsModal.filter(function(i){return i.moneda!=='ARS';}).reduce(function(a,i){return a+i.precio*i.cant;},0);
   var data={
     id:presupEditId||Date.now(),
     fecha:fecha,
@@ -947,7 +958,8 @@ function guardarPresupuesto(){
     cliente_nombre:cli?cli.nombre:'',
     items:JSON.parse(JSON.stringify(presupItemsModal)),
     total:total,
-    obs:document.getElementById('pres-obs').value.trim()
+    obs:document.getElementById('pres-obs').value.trim(),
+    totalStr:totalStr
   };
   if(presupEditId){var idx=presupuestosGuardados.findIndex(function(x){return x.id===presupEditId;});presupuestosGuardados[idx]=data;}
   else{presupuestosGuardados.unshift(data);}
@@ -1001,10 +1013,12 @@ function imprimirPresupuestoHTML(titulo,fecha,cli,items,total,obs){
   var dir=[cfg.direccion,cfg.localidad].filter(Boolean).join(' - ');
   var num=Date.now().toString().slice(-6);
   var iH=items.map(function(i){
-    return '<tr><td style="padding:9px 12px;border:1px solid #ddd;font-size:13px">'+i.desc+'</td>'
+    var fmt2=function(v){return (i.moneda==='ARS')?fmtPeso(v):fmtUSD(v);};
+    var ivaTxt=labelIVA(i.iva||'siniva');
+    return '<tr><td style="padding:9px 12px;border:1px solid #ddd;font-size:13px">'+i.desc+'<div style="font-size:10px;color:#999">'+ivaTxt+'</div></td>'
       +'<td style="padding:9px 12px;border:1px solid #ddd;text-align:center;font-size:13px">'+i.cant+'</td>'
-      +'<td style="padding:9px 12px;border:1px solid #ddd;text-align:right;font-size:13px">'+fmtUSD(i.precio)+'</td>'
-      +'<td style="padding:9px 12px;border:1px solid #ddd;text-align:right;font-weight:700;font-size:13px">'+fmtUSD(i.precio*i.cant)+'</td>'
+      +'<td style="padding:9px 12px;border:1px solid #ddd;text-align:right;font-size:13px">'+fmt2(i.precio)+'</td>'
+      +'<td style="padding:9px 12px;border:1px solid #ddd;text-align:right;font-weight:700;font-size:13px">'+fmt2(i.precio*i.cant)+'</td>'
       +'</tr>';
   }).join('');
   var html='<div style="font-family:Arial,sans-serif;max-width:620px;width:100%;margin:0 auto;padding:28px;box-sizing:border-box">'
@@ -1019,7 +1033,7 @@ function imprimirPresupuestoHTML(titulo,fecha,cli,items,total,obs){
     +'<div style="font-size:26px;font-weight:900;color:#b8902f;letter-spacing:2px">PRESUPUESTO</div>'
     +'<div style="font-size:13px;color:#666;margin-top:4px">N&deg; '+num+'</div>'
     +'<div style="font-size:13px;color:#666">Fecha: '+fecha+'</div>'
-    +'<div style="font-size:11px;color:#999;margin-top:2px">Precios en USD</div>'
+
     +'</div>'
     +'</div>'
     +(cli?'<div style="margin-bottom:18px;padding:12px 16px;background:#f8f6f0;border-radius:8px;border-left:4px solid #b8902f">'
@@ -1038,8 +1052,8 @@ function imprimirPresupuestoHTML(titulo,fecha,cli,items,total,obs){
     +'</tr></thead><tbody>'+iH+'</tbody></table>'
     +'<div style="display:flex;justify-content:flex-end;margin-bottom:20px">'
     +'<div style="background:#b8902f;color:#fff;padding:14px 28px;border-radius:8px;text-align:right;min-width:200px">'
-    +'<div style="font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:1px">Total estimado (sin IVA)</div>'
-    +'<div style="font-size:26px;font-weight:900;margin-top:4px">'+fmtUSD(total)+'</div>'
+    +'<div style="font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:1px">Total</div>'
+    +'<div style="font-size:22px;font-weight:900;margin-top:4px">'+calcTotalImpresion(items)+'</div>'
     +'</div>'
     +'</div>'
     +(obs?'<div style="margin-bottom:20px;padding:12px 16px;background:#f8f6f0;border-radius:8px;font-size:13px;color:#555">'
@@ -1075,7 +1089,7 @@ function renderPresupuestos(){
       +'<td>'+p.titulo+'</td>'
       +'<td>'+(p.cliente_nombre||'<span style="color:var(--text3)">Sin cliente</span>')+'</td>'
       +'<td style="color:var(--text2)">'+p.items.length+' item(s)</td>'
-      +'<td style="color:var(--accent);font-weight:700">'+fmtUSD(p.total)+'</td>'
+      +'<td style="color:var(--accent);font-weight:700">'+(p.totalStr||fmtUSD(p.total||0))+'</td>'
       +'<td style="white-space:nowrap">'
       +'<button class="btn btn-print btn-sm" onclick="imprimirPresupuestoGuardado('+p.id+')" title="Imprimir">&#128424;</button> '
       +'<button class="btn btn-ghost btn-sm" onclick="editarPresupuesto('+p.id+')" title="Editar">&#9999;</button> '
