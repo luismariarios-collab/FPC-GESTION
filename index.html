@@ -1261,8 +1261,9 @@ function imprimirPresupuestoHTML(titulo,fecha,cli,items,total,obs){
   +'</div>';
   document.getElementById('ticketPrint').innerHTML=html;
   document.getElementById('ticketPrint').style.display='block';
-  window.print();
-  document.getElementById('ticketPrint').style.display='none';
+  var img=document.querySelector('#ticketPrint img');
+  function doPrint(){window.print();document.getElementById('ticketPrint').style.display='none';}
+  if(img&&!img.complete){img.onload=doPrint;img.onerror=doPrint;setTimeout(doPrint,1200);}else{setTimeout(doPrint,120);}
 }
 
 function renderPresupuestos(){
